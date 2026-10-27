@@ -1,0 +1,187 @@
+WHOSCORED satisfiedEventsTypes - DECODED
+Source: France_vs_England.csv (1,559 events, 124 distinct ids)  |  2026-10-15
+====================================================================================================
+
+METHOD
+------
+satisfiedEventsTypes is WhoScored's list of statistics an event counts towards.
+Each id is one counter in their stats engine. The CSV only gives numbers, so each id
+was decoded from the data itself:
+  1. Parse every event row of France_vs_England.csv.
+  2. For each id, list every row carrying it: type, outcomeType, x/y, endX/endY
+     (metres, attacking towards x = 105), qualifiers, and the ids always present with it.
+  3. Name the id from what is unique to its rows.
+  4. Cross-check against WhoScored's stat-name order (matchCentreEventTypeJson).
+Confidence: High = data pins the id alone; Medium = data fits but other readings remain;
+Low = too few rows to separate it from its neighbours.
+
+ID TABLE (one line per id; n = number of rows carrying the id)
+-------------------------------------------------------------
+ID   Name                                    Meaning                                              Evidence (n - rows)                                         Conf.
+---  --------------------------------------  ---------------------------------------------------  ----------------------------------------------------------  ------
+0    shotSixYardBox                          Shot from inside the six-yard box                    1 - SavedShot at x 102, qualifier SmallBoxLeft              High
+1    shotPenaltyArea                         Shot from inside the penalty area                    27 - 13 saved, 9 goals, 5 missed; x 87-100                  High
+2    shotOboxTotal                           Shot from outside the box                            10 - x 69-86, OutOfBoxCentre on 90%                         High
+3    shotOpenPlay                            Shot in open play                                    25 - RegularPlay on 100%                                    High
+4    shotCounter                             Shot on a counter-attack                             9 - FastBreak on 100%                                       High
+5    shotSetPiece                            Shot from a set piece                                3 - FromCorner on 100%                                      High
+7    shotOffTarget                           Shot off target                                      8 - all MissedShots                                         High
+9    shotOnTarget                            Shot on target (goal or save, blocks excluded)       20 - 10 goals + 10 saved; never with 11                     High
+10   shotsTotal                              Any shot                                             38 - every Goal, SavedShot, MissedShots                     High
+11   shotBlocked                             Shot blocked by an outfielder                        10 - SavedShot with Blocked on 100%                         High
+12   shotRightFoot                           Right-footed shot                                    17 - RightFoot on 100%                                      High
+13   shotLeftFoot                            Left-footed shot                                     19 - LeftFoot on 100%                                       High
+14   shotHead                                Headed shot                                          2 - Head on 100%                                            High
+17   goalPenaltyArea                         Goal from inside the box                             9 - all Goal, x 87-98                                       High
+18   goalObox                                Goal from outside the box                            1 - Goal at x 82, OutOfBoxCentre                            High
+19   goalOpenPlay                            Open-play goal                                       4 - Goal + RegularPlay                                      High
+20   goalCounter                             Goal on a counter-attack                             4 - Goal + FastBreak                                        High
+21   goalSetPiece                            Goal from a set piece                                1 - headed goal FromCorner                                  High
+22   penaltyScored                           Penalty scored                                       1 - Goal + Penalty (86')                                    High
+24   goalNormal                              Goal that is not a penalty or own goal               9 - every goal except the penalty                           High
+25   goalRightFoot                           Right-footed goal                                    3 - Goal + RightFoot                                        High
+26   goalLeftFoot                            Left-footed goal                                     6 - Goal + LeftFoot                                         High
+27   goalHead                                Headed goal                                          1 - Goal + Head                                             High
+29   shortPassInaccurate                     Failed short pass                                    61 - Pass Unsuccessful, length 0.4-28 m, no Longball/Cross  High
+30   shortPassAccurate                       Completed short pass                                 841 - Pass Successful, length 2-32 m                        High
+31   passCorner                              Corner kick taken                                    7 - CornerTaken on 100%, x 104.5                            High
+32   passCornerAccurate                      Corner reaching a team-mate                          6 - corners, all Successful                                 High
+33   passCornerInaccurate                    Corner not reaching a team-mate                      1 - corner, Unsuccessful                                    High
+34   passCorner (duplicate)                  Corner kick; same 7 rows as 31 here                  7 - identical row set to 31                                 Low
+35   passBack                                Backward pass (endX < x)                             390 - dx < 0 on 100%                                        High
+36   passForward                             Forward pass (endX > x)                              598 - dx > 0 on 100%                                        High
+37   passLeft                                Pass to the left (endY > y)                          506 - dy > 0 on 100%                                        High
+38   passRight                               Pass to the right (endY < y)                         483 - dy < 0 on 100%                                        High
+39   keyPassLong                             Key pass that is a long ball                         5 - KeyPass + Longball on 100%                              High
+40   keyPassShort                            Key pass that is short                               25 - KeyPass on 100%, no Longball                           High
+41   keyPassCross                            Key pass that is a cross                             3 - KeyPass + Cross                                         High
+42   keyPassCorner                           Key pass from a corner                               2 - KeyPass + CornerTaken                                   High
+43   keyPassThroughball                      Key pass that is a through ball                      6 - KeyPass + Throughball                                   High
+46   keyPassOther                            Key pass of no listed kind                           21 - KeyPass, mostly ground passes                          Medium
+47   assistCross                             Goal assist by cross                                 1 - corner cross for the headed goal                        High
+48   assistCorner                            Goal assist from a corner                            1 - same row as 47                                          High
+49   assistThroughball                       Goal assist by through ball                          3 - Throughball + IntentionalGoalAssist                     High
+52   assistOther                             Goal assist of no listed kind                        3 - assists, not cross/corner/through ball                  Medium
+53   dribbleLost                             Failed take-on                                       20 - all TakeOn Unsuccessful                                High
+54   dribbleWon                              Successful take-on                                   30 - all TakeOn Successful                                  High
+55   challengeLost                           Defender beaten by a dribble                         30 - all Challenge Unsuccessful                             High
+56   interceptionWon                         Interception                                         20 - all Interception                                       High
+57   clearanceHead                           Headed clearance                                     10 - Clearance + Head                                       High
+58   outfielderBlock                         Shot blocked by an outfield player                   11 - Save + OutfielderBlock, x 5-23                         High
+59   passCrossBlockedDefensive               Cross blocked by a defender                          1 - Clearance + BlockedCross                                High
+60   outfielderBlockedPass                   Pass blocked by an outfield player                   13 - all BlockedPass                                        High
+61   offsideGiven                            Player caught offside                                6 - all OffsideGiven, x 56-101                              High
+62   offsideProvoked                         Defence catching a player offside                    6 - all OffsideProvoked, x 5-50                             High
+63   foulGiven                               Foul suffered (fouled player)                        22 - all Foul Successful                                    High
+64   foulCommitted                           Foul committed                                       22 - all Foul Unsuccessful                                  High
+69   turnover                                Ball lost by a bad touch                             21 - all BallTouch Unsuccessful                             High
+70   dispossessed                            Ball taken off the carrier                           27 - all Dispossessed                                       High
+77   saveHands                               Keeper save with the hands                           7 - Save + Hands on 100%                                    High
+78   saveFeet                                Keeper save with the feet                            2 - Save + Feet on 100%                                     High
+79   keeperSave (all)                        Any keeper save; same rows as 113 here               9 - every GK Save                                           Medium
+80   saveSixYardBox                          Save inside the six-yard box                         1 - KeeperSaveInSixYard                                     High
+81   savePenaltyArea                         Save inside the penalty area                         4 - KeeperSaveInTheBox                                      High
+82   saveObox                                Save from a shot outside the box                     4 - KeeperSaveObox                                          High
+83   keeperDivingSave                        Diving save                                          5 - DivingSave on 100%                                      High
+84   standingSave                            Standing save                                        1 - StandingSave                                            High
+88   missLeft / assisted miss (left foot)    Off-target shot, left foot, after an assist          1 - MissedShots, OutOfBoxCentre, LeftFoot, Assisted         Low
+89   missRight / assisted miss (right foot)  Off-target shot, right foot, after an assist         3 - MissedShots + RightFoot + Assisted                      Low
+90   shotOffTargetInsideBox                  Off-target shot from inside the box                  5 - MissedShots, x 89-95                                    High
+91   touches                                 Any on-ball touch                                    1323 - exactly the rows with isTouch = True                 High
+92   assist                                  Goal assist (all kinds)                              7 - KeyPass + ShotAssist, the goal passes                   High
+93   ballRecovery                            Loose ball won back                                  95 - 88 BallRecovery, 6 KeeperPickup, 1 Claim               High
+94   clearanceEffective                      Clearance that clears the danger                     22 - same rows as 95                                        Medium
+95   clearanceTotal                          Clearance                                            22 - every Clearance except the blocked cross               High
+96   lastManBlock                            Last-man block by an outfielder                      1 - Save + OutfielderBlock + LastMan                        Medium
+99   errorLeadsToShot                        Error leading to an opponent shot                    1 - England Error at 60'19, France shot at 60'25            High
+100  intentionalAssist                       Deliberate goal assist                               6 - IntentionalGoalAssist on 100% (92 has 7)                High
+101  interceptionAll                         Interception (total)                                 20 - same rows as 56                                        Medium
+102  interceptionInTheBox                    Interception inside own box                          2 - x 7-14                                                  High
+104  keeperClaimHighWon                      Keeper catches a high ball                           1 - Claim at x 4                                            High
+108  parriedDanger                           Save parried into a dangerous area                   4 - ParriedDanger on 100%                                   High
+109  parriedSafe                             Save parried to safety                               3 - ParriedSafe on 100%                                     High
+110  collected                               Save held (ball collected)                           2 - Collected on 100%                                       High
+112  keeperSaveInTheBox                      Save from a shot inside the box                      5 - KeeperSaveInTheBox on 100%                              High
+113  keeperSaveTotal                         Keeper saves (total)                                 9 - every GK Save                                           High
+116  keeperPenaltyConceded                   Keeper beaten by a penalty                           1 - PenaltyFaced Unsuccessful, France keeper, 86'           Medium
+117  passAccurate                            Completed pass (open play and most set pieces)       873 - Pass Successful (894 in total)                        Medium
+118  passBackZoneInaccurate                  Failed pass ending in own half                       26 - Unsuccessful, endX 11-51                               High
+119  passForwardZoneAccurate                 Completed pass ending in opponent half               396 - Successful, endX 53-104                               High
+120  passInaccurate                          Failed pass                                          90 - Pass Unsuccessful                                      High
+122  cornerAwarded                           Corner won (Successful) or conceded (Unsuccessful)   14 - 7 + 7, one pair per corner                             High
+123  passKey                                 Key pass (pass leading to a shot)                    30 - KeyPass on 100%                                        High
+124  passChipped                             Chipped pass                                         59 - Chipped on 100%                                        High
+125  passCrossAccurate                       Cross reaching a team-mate                           4 - Cross, all Successful                                   High
+126  passCrossInaccurate                     Failed cross                                         13 - Cross, all Unsuccessful                                High
+127  passLongBallAccurate                    Completed long ball                                  32 - Longball, 32-59 m                                      High
+128  passLongBallInaccurate                  Failed long ball                                     29 - Longball, all Unsuccessful                             High
+129  passThroughBallAccurate                 Completed through ball                               9 - Throughball, all Successful                             High
+130  passThroughBallInaccurate               Failed through ball                                  7 - Throughball, all Unsuccessful                           High
+132  passFreekickAccurate                    Completed free-kick pass                             20 - FreekickTaken, Successful                              High
+133  passFreekickInaccurate                  Failed free-kick pass                                3 - FreekickTaken, Unsuccessful                             High
+134  penaltyConceded                         Penalty given away                                   1 - Foul + Penalty + Defensive                              High
+136  penaltyWon                              Penalty won                                          1 - Foul + Penalty + Offensive                              High
+137  passRightFoot                           Pass tagged right foot (only crosses carry it here)  12 - RightFoot + Cross on 100%                              Medium
+138  passLeftFoot                            Pass tagged left foot (only crosses carry it here)   5 - LeftFoot + Cross on 100%                                Medium
+139  passHead                                Headed pass                                          14 - HeadPass on 100%                                       High
+141  tackleLastMan                           Last-man tackle                                      4 - Tackle + LastMan                                        High
+142  tackleLost                              Failed tackle                                        20 - all Tackle Unsuccessful                                High
+143  tackleWon                               Successful tackle                                    23 - all Tackle Successful                                  High
+197  duelAerialWon                           Aerial duel won                                      13 - all Aerial Successful                                  High
+198  duelAerialLost                          Aerial duel lost                                     13 - all Aerial Unsuccessful                                High
+199  offensiveAerial                         Aerial duel in attack                                13 - Aerial + Offensive, x 57-98                            High
+200  defensiveAerial                         Aerial duel in defence                               13 - Aerial + Defensive, x 7-48                             High
+201  bigChanceMissed                         Big chance not scored                                6 - 4 saved, 1 missed, 1 ChanceMissed                       High
+202  bigChanceScored                         Big chance scored                                    7 - Goal + BigChance                                        High
+203  bigChanceCreated                        Pass creating a big chance                           11 - BigChanceCreated on 100%                               High
+204  overrun                                 Player overruns the ball                             2 - TakeOn + OverRun                                        High
+205  successfulFinalThirdPasses              Completed pass ending in the final third             186 - Successful, endX 70-104                               High
+212  throwIn                                 Throw-in                                             11 - ThrowIn on 100%; not counted in 218                    High
+213  subOn                                   Player comes on                                      10 - all SubstitutionOn                                     High
+214  subOff                                  Player goes off                                      10 - all SubstitutionOff                                    High
+215  defensiveThird                          Pass or clearance ending in own third                293 - endX 2-35                                             High
+216  midThird                                Pass or clearance ending in middle third             478 - endX 35-70                                            High
+217  finalThird                              Pass ending in the final third                       255 - endX 70-105                                           High
+218  passTotal                               Any pass except throw-ins                            987 - all Pass rows minus 11 throw-ins                      High
+
+Names follow WhoScored stat names where data and their published order agree.
+Where the data disagreed (34, 79, 88, 89, 137, 138) the meaning describes what the data shows.
+
+FAMILIES
+--------
+Range    Family                                                                         Ids seen here
+-------  -----------------------------------------------------------------------------  -------------------------------------------
+0-15     Shots: zone, situation, target, body part                                      0-5, 7, 9-14
+16-28    Goals: zone, situation, type, body part                                        17-22, 24-27
+29-38    Passes: short, corners, direction                                              29-38
+39-46    Key passes by kind                                                             39-43, 46
+47-52    Assists by kind                                                                47-49, 52
+53-70    Dribbles, defending, offsides, fouls, cards, ball loss                         53-64, 69-70
+71-90    Keeper saves, then close misses                                                77-84, 88-90
+91-116   Totals: touches, assists, recoveries, clearances, interceptions, keeper        91-102, 104, 108-113, 116
+117-143  Pass accuracy by type, penalties, tackles                                      117-120, 122-130, 132-134, 136-139, 141-143
+197-218  Aerials, big chances, final-third passes, throw-ins, subs, thirds, pass total  197-205, 212-218
+
+Filter on an id in pandas:
+    import ast
+    df['S'] = df['satisfiedEventsTypes'].apply(ast.literal_eval)
+    key_passes  = df[df['S'].apply(lambda s: 123 in s)]   # passKey
+    final_third = df[df['S'].apply(lambda s: 205 in s)]   # successfulFinalThirdPasses
+One event can carry many ids: a headed corner goal carries 1, 5, 9, 10, 14, 17, 21, 24, 27, 91.
+
+CAVEATS
+-------
+- 111 of 124 ids are High confidence.
+- Absent from this match: 6, 8, 15, 16, 23, 28, 44, 45, 50, 51, 65-68, 71-76, 85-87, 97, 98,
+  103, 105-107, 111, 114, 115, 121, 131, 135, 140, 144-196, 206-211.
+  Inferred by block (NOT verified): 6 shotDirectCorner, 8 shotOnPost, 16 goalSixYardBox,
+  23 goalOwn, 44 keyPassFreekick, 45 keyPassThrowin, 50 assistFreekick, 51 assistThrowin,
+  65-68 yellow / void yellow / second yellow / red card, 71-76 saves by goal-mouth area,
+  135 penaltyMissed.
+- Duplicates here: 34 = 31, 79 = 113, 94 = 95, 101 = 56 on every row. They are separate
+  counters in WhoScored and can differ in other matches.
+- Low confidence: 34, 88, 89 (1-7 rows each).
+- 137 / 138: the foot qualifier is only set on crosses here, so they act as right/left-foot cross.
+- Rows with no id: Start, End, FormationSet, FormationChange, KeeperSweeper (15 rows).
+- To confirm every name, save the WhoScored match-centre HTML and read its
+  matchCentreEventTypeJson object, which maps each name to its id.

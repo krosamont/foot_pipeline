@@ -1,0 +1,13 @@
+/* Fonts of the 3D page, bundled here so it renders the same on any machine or server (SIL Open Font Licence):
+     text and labels: Poppins -> Helvetica
+     numbers and team names: Inter Black (installed Inter, else the bundled Inter 900) -> Helvetica */
+@font-face { font-family:'Poppins'; font-weight:400; font-display:block; src:url(Poppins-400-latin.woff2) format('woff2'); }
+@font-face { font-family:'Poppins'; font-weight:500; font-display:block; src:url(Poppins-500-latin.woff2) format('woff2'); }
+@font-face { font-family:'Poppins'; font-weight:600; font-display:block; src:url(Poppins-600-latin.woff2) format('woff2'); }
+@font-face { font-family:'Poppins'; font-weight:700; font-display:block; src:url(Poppins-700-latin.woff2) format('woff2'); }
+@font-face { font-family:'Inter Black'; font-weight:900; font-display:block; src:local('Inter Black'), local('Inter-Black'), url(Inter-900-latin.woff2) format('woff2'); }
+:root {
+  --font-text: 'Poppins', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --font-mono: 'Poppins', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --font-num: 'Inter Black', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}

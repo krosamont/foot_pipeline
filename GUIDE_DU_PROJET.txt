@@ -1,0 +1,182 @@
+GUIDE DU PROJET — back_engineering_foot2
+=========================================
+Etat au 16 octobre 2026.
+
+Le projet fait deux choses :
+  A. un PIPELINE DE DONNEES : WhoScored + FotMob -> CSV enrichis + dashboard PNG (18 graphiques) ;
+  B. un PORTRAIT 3D du match (page web Three.js) construit a partir de ces CSV, et sa video.
+
+
+1. ORGANISATION DU DOSSIER (ce qui sert, ce qui est archive)
+------------------------------------------------------------
+UTILISE
+back_engineering_foot2/
+|-- postmatchdashboard_whoscored_v2.py   point d'entree court : ids du match en haut, lance pmd (voir 2.1)
+|-- requirements.txt             versions Python testees (pandas 2.3.3, matplotlib 3.11.2, mplsoccer 1.8.1, ...)
+|-- GUIDE_DU_PROJET.txt          ce fichier
+|-- README.md                    documentation technique (en anglais)
+|
+|-- pmd/                         A. Pipeline de donnees (paquet Python)
+|   |-- config.py                adresses FotMob / WhoScored, en-tetes HTTP, MatchConfig (le match a traiter)
+|   |-- fetch.py                 telechargements : FotMob (JSON), WhoScored (curl_cffi -> Playwright -> soccerdata -> FBref)
+|   |-- events.py                table des evenements : metres, joueurs, xT du dashboard, noms courts, xG FotMob des tirs
+|   |-- export.py                exports : qualifiers en colonnes, zones, conduites, xT, momentum, ids FotMob, infos match
+|   |-- dashboard.py             dashboard 18 graphiques (code de dessin d'origine, isole dans une fonction)
+|   |-- fixtures.py              calendriers FotMob des competitions : url + date de chaque match, journee par journee
+|   |-- whoscored_schedule.py    ids WhoScored d'une saison entiere, automatiquement (soccerdata), relies a FotMob
+|   |-- whoscored_fixtures.py    ids WhoScored (export de la page des matchs) -> date, equipes, championnat, saison,
+|   |                            score, et l'id FotMob du meme match
+|   `-- run.py                   enchaine fetch -> events -> export -> dashboard
+|
+|-- data/
+|   |-- France_vs_England/       exports du match (lus par la 3D) + ancien export a 48 colonnes (archive)
+|   |-- Man City_vs_PSG/         Ligue des champions 2026/27, FotMob 6106254 / WhoScored 2029121 (video : out/Man City_vs_PSG_3d.mp4)
+|   `-- fixtures/                calendriers FotMob (ligue-1, laliga, serie, bundesliga, premier-league, champions-league,
+|                                fixtures_all.csv), whoscored_fixtures.csv (ids WhoScored + FotMob),
+|                                sources/ (le fichier WhoScored exporte de la page)
+|-- fabric/                      B. La page 3D : index.html, js/ (moteur en 12 modules, entree main.js), data/<date>_<domicile>_vs_<exterieur>.js et data.js (generes), camera.js, lib/ (Three.js)
+|-- assets/                      polices, photos et infos joueurs, grille xT AKapich, momentum FotMob (secours)
+|-- tools/                       outils du travail courant
+|   |-- build_data.py            CSV -> fabric/data.js (n'importe quel match)
+|   |-- validate_events.py       regles de coherence des donnees
+|   |-- check_engine.js          10 regles du moteur 3D verifiees sur la simulation
+|   |-- render.js, encode.sh     video : rendu image par image puis mp4 (reprise auto si plantage)
+|   |-- serve.py                 serveur local sans cache (http://localhost:8000/fabric/)
+|   |-- make_colab_zip.sh        prepare dist/pmd_colab.zip pour Colab
+|   |-- reference/               comparaison avec la video de reference : sbs.sh, compare.py, strip.py, fit_camera.py
+|   |-- debug/dbg.js             affiche l'etat interne du moteur a un instant donne
+|   `-- node_modules/            puppeteer-core (Chrome headless)
+|-- tests/
+|   |-- test_pipeline.py         non-regression hors ligne : le pipeline doit redonner exactement les fichiers de reference
+|   |-- test_export.py           controles des colonnes de l'export
+|   `-- fixtures/                donnees brutes figees du match, grilles xT, empreintes des fichiers attendus
+|-- notebooks/run_on_colab.ipynb carnet Colab (installer, tester, lancer, afficher, telecharger)
+|-- dist/pmd_colab.zip           le paquet pret a envoyer sur Colab
+|-- docs/                        REGLES_3D.txt (toutes les regles 3D), REGLES_3D2.txt (ta copie),
+|                                satisfiedEventsTypes_explained.txt, images/ (schemas des zones)
+|-- reference/Untitled.mov       video de reference (wc26.bogachev.fr), utilisee par tools/reference/
+|-- feedback/                    tes captures et l'enregistrement du carton rouge
+`-- out/                         derniere video (fabric_v24.mp4) et dernier dashboard
+
+ARCHIVE (plus utilise ; garde au cas ou, peut etre supprime pour gagner ~13 Go)
+|-- legacy/postmatchdashboard_whoscored_v2_legacy.py   l'ancien script complet, tel qu'avant la reorganisation
+`-- archive/
+    |-- out_old/                 anciennes videos v1-v8, comparaisons, dossiers d'images de rendu (le gros du poids)
+    |-- scratch/                 mes essais et mesures de travail
+    |-- fabric_old/              ancienne version du moteur (un seul maillage)
+    `-- tools_old/timing.js      outil de mesure casse (appelait une fonction qui n'existe plus)
+
+RETIRE DU CODE (n'avait plus aucun effet)
+- app.js : 27 parametres d'anciens moteurs, 6 fonctions de reglage/debogage (__seamTrace, __share, __sig, __front,
+  __perc, __matchTimeAtX), une variable morte (ballIdx). Les 8 regles du moteur donnent exactement les memes chiffres.
+- build_data.py : la trajectoire du ballon (plus lue) et l'ancien momentum de secours (faux : coordonnees supposees 0-100).
+- pmd/dashboard.py : 10 fonctions "Player Dashboard" jamais appelees (gardees dans legacy/). Image identique.
+
+
+2. COMMENT FAIRE TOURNER
+------------------------
+2.1 Un match, de bout en bout :
+      python postmatchdashboard_whoscored_v2.py                     (ids en haut du fichier)
+      python -m pmd.run --fotmob <id> --whoscored <id> --out data/<Match> --cache data/<Match>/raw
+        -> <Domicile>_vs_<Exterieur>_qualifiers_expanded.csv, _momentum.csv, _match_info.csv, _general.json, _Dashboard.png
+2.2 Les calendriers (url + date de tous les matchs, journees 0 a 40) :
+      python -m pmd.fixtures                                        (les 6 competitions, saison en cours)
+      python -m pmd.fixtures --leagues ligue-1 laliga --season 2025/2026 --rounds 0 40
+2.2b Les ids WhoScored (fichier exporte de la page des matchs WhoScored) :
+      python -m pmd.whoscored_fixtures data/fixtures/sources/*.csv     (plusieurs exports fusionnes, sans doublons)
+        -> data/fixtures/whoscored_fixtures.csv : id WhoScored, date yyyy-mm-dd, equipes, championnat, saison, score,
+           id FotMob du meme match (les deux ids dont pmd.run a besoin)
+      Les fichiers sources ont ete obtenus avec l'extension Instant Data Scraper sur les pages des tournois WhoScored
+      (ex. https://www.whoscored.com/regions/250/tournaments/12/europe-champions-league). Pour les autres saisons, mieux :
+      python -m pmd.whoscored_schedule --season 2025/2026 [--leagues laliga ...] : ids WhoScored de toute une saison
+      (soccerdata, ~3 min par championnat) relies automatiquement a FotMob ; teste sur LaLiga 2025/2026 : 380/380.
+      Ligue des champions non geree par soccerdata : garder l'export manuel pour elle.
+2.3 Tests : python tests/test_pipeline.py   et   python tests/test_export.py
+2.4 Verifier les donnees : python tools/validate_events.py <csv> --momentum <momentum.csv> [--fotmob <json>]
+2.5 La 3D : python tools/build_data.py <csv> [--home "Nom"]  puis  node tools/check_engine.js
+      page : python tools/serve.py  puis  http://localhost:8000/fabric/   (?demoCards=1 pour voir les cartons)
+2.6 La video : node tools/render.js --fps 60 --out out/frames --scale 1  puis  tools/encode.sh out/frames out/video.mp4 60
+2.7 Sur Colab : tools/make_colab_zip.sh, puis ouvrir notebooks/run_on_colab.ipynb dans Colab et suivre les cellules
+      (envoyer dist/pmd_colab.zip, installer, lancer le test hors ligne, choisir les ids, lancer, telecharger).
+
+
+3. CE QUI A ETE FAIT — DONNEES (pipeline / export)
+--------------------------------------------------
+- Les qualifiers WhoScored sont eclates en colonnes (valeur, ou True pour un drapeau) ; PassEndX/Y passes en metres.
+- Zones : zone 1-18 (6 bandes x 3 couloirs, zone 1 a gauche devant son but), zone de phase (Build / Progress /
+  Penetrate / Finish, 26,25 m chacune), couloir (Wide / Half Space / Central, gauche / droite), pour le depart (x,y),
+  l'arrivee (endX,endY) et la destination de passe (PassEndX,Y).
+- Distance (x,y) -> (endX,endY) ; conduite de balle avant chaque passe (point de reception, distance, gain vers l'avant).
+- xT des passes et des conduites et momentum par minute, avec ta formule (AKapich), coquille end_y corrigee.
+- Identifiant FotMob de chaque joueur (photo : https://images.fotmob.com/image_resources/playerimages/<id>.png) et
+  fichier d'informations du match (equipes, logos, couleurs clair/sombre, date, competition, genre, stade, affluence).
+- Explication des ids satisfiedEventsTypes (docs/satisfiedEventsTypes_explained.txt).
+- Regles de verification des donnees pour d'autres matchs (tools/validate_events.py) : elles ont trouve les 8 fautes
+  "offensives" (la faute est commise par l'equipe qui a le ballon).
+
+
+4. CE QUI A ETE FAIT — LA 3D (detail complet dans docs/REGLES_3D.txt)
+---------------------------------------------------------------------
+- Territoire : la ligne bleu/blanc suit les actions du CSV (90 % des actions du bon cote de la ligne), lentement
+  (l'horloge du match ralentit la ou il faut, video ~282 s), une seule direction a la fois, lissage des pointes.
+- Percees : une partie de la ligne court vers chaque tir, but, corner (au-dela du point) et chaque faute (sur le point) ;
+  langue etroite pour les contre-attaques. Verifie : 45/45 tirs-buts-corners, 22/22 fautes.
+- Fautes : flash, percee, puis toute la ligne revient calmement a plat sur la ligne de la faute ; le jeu repart de la.
+- Buts : pas de recul de l'equipe qui marque juste avant ; inondation de couleur ; carte du buteur ; engagement a plat
+  sur la ligne mediane pendant ~2 s avec un eclair "KICK-OFF". Penalty : terrain noir et vague depuis le point.
+- Relief : seuls les buts sont hauts ; occasions, corners, coups francs, avancees restent bas (14 m max) et sont plus
+  LARGES quand l'xG / l'xT est grand ; aucune colline ne reste dans le terrain de l'autre equipe.
+- Mi-temps : la camera fait un demi-tour, les equipes attaquent dans l'autre sens ensuite.
+- Interface : pause (clic / espace), pas de bouton son, barre de momentum cliquable pour revenir en arriere ou avancer,
+  remplacements "entrant / sortant", cartons (icone + animation : pulsation rouge, pluie pour le jaune), etiquettes
+  d'occasion "joueur · issue · xG".
+- Pour d'autres matchs : equipe a domicile detectee, codes et drapeaux, minutes de 2e mi-temps, buts contre son camp,
+  verifications automatiques (tools/check_engine.js).
+
+
+5. LA REORGANISATION DU CODE (pmd/)
+-----------------------------------
+- L'ancien script (2 554 lignes, 302 instructions globales) est decoupe en modules ; plus d'identifiants de match dans
+  le code ; ce qui depend de Colab (envoi des fichiers au navigateur) est isole dans run.download().
+- Les 16 filtres de tirs recopies du dashboard sont remplaces par une seule fonction.
+- Preuve que rien n'a change : sur les memes donnees brutes, le nouveau code produit EXACTEMENT les memes fichiers que
+  l'ancien, octet par octet, image du dashboard comprise ; tests/test_pipeline.py le reverifie a chaque fois, hors ligne.
+- Limite honnete : dans dashboard.py, le code de dessin des 18 graphiques est garde tel quel (isole, pas reecrit
+  graphique par graphique) pour garantir la meme image.
+
+
+6. A FAIRE
+----------
+- Regarder tes captures du dossier feedback/ que je n'avais pas pu ouvrir (22.32.x, 22.45.10, 23.21.57, 23.37.23)
+  et l'enregistrement du carton rouge, pour ajuster l'animation.
+- Non gere par la 3D : prolongations et tirs au but.
+- Calendriers : la Ligue des champions ne contient pour l'instant que la phase de ligue (8 journees) ; les tours a
+  elimination directe apparaitront quand FotMob les publiera.
+
+AJOUT (16/10/2026) : TOUT VIENT DES DONNEES
+- Noms, logos et couleurs des equipes : <match>_match_info.csv. Joueurs (photo, age, numero) : <match>_players.csv,
+  nouvel export ecrit par le script. Rien a saisir a la main pour un nouveau match.
+- Nouveau match en 3D : python -m pmd.run --fotmob <id> --whoscored <id> --out <dossier> ; copier les exports dans
+  data/<match>/ ; python tools/validate_events.py <csv> ; python tools/build_data.py <csv> ;
+  node tools/check_engine.js ; node tools/render.js --out out/frames_x ; sh tools/encode.sh out/frames_x out/x.mp4 30.
+- Regles changees : pas de recul de l'equipe qui marque pendant toute sa possession (jusqu'a l'inondation) ; fond
+  de la couleur de l'equipe qui domine ; percees mieux ordonnees quand les actions s'enchainent (voir REGLES_3D.txt).
+
+AJOUT (17/10/2026)
+- Commande unique : python -m pmd.make3d --fotmob <id>  (cherche l'id WhoScored, telecharge, exporte, verifie,
+  construit la 3D, verifie le moteur, fait la video out/<match>_3d.mp4 ; s'arrete si un controle echoue).
+- Un fichier par match : fabric/data/<date>_<domicile>_vs_<exterieur>.js (ex. 2026-10-14_roma_vs_real-madrid), ouvert avec fabric/index.html?match=<ce nom>.
+- Moteur 3D decoupe en modules dans fabric/js/ (config, timeline, scene, engine, relief, sim, sky, pulse, cardfx,
+  ui, fonts, main). Rendu identique au pixel pres a l'ancien app.js (archive/fabric_old/app_monolith_20261017.js).
+- Prolongations dessinees (minutes 91 a 120, la carte tourne a chaque pause) ; pas les tirs au but.
+- Polices : Poppins partout pour les textes, Inter Black pour les chiffres (incluses dans assets/fonts/).
+
+INSTALLATION ET SERVEUR (17/10/2026)
+- ./setup.sh : cree .venv (requirements.txt), installe les paquets Node et Chrome for Testing 131, verifie ffmpeg.
+  ./setup.sh --system installe aussi les paquets systeme (Linux : apt-get ; Mac : Homebrew), --check lance les
+  10 regles du moteur sur France-Angleterre.
+- Ensuite : .venv/bin/python -m pmd.make3d --fotmob <id>.
+- Serveur : Dockerfile (docker build --platform linux/amd64 -t match-fabric . puis docker run ... --fotmob <id>),
+  ou ./setup.sh --system sur un Debian / Ubuntu. Sans carte graphique, la 3D est rendue en logiciel (SwiftShader),
+  meme image qu'avec le GPU du Mac. tools/browser.js trouve Chrome tout seul (ou variable CHROME).
+

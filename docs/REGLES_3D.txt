@@ -1,0 +1,334 @@
+REGLES DE LA 3D — portrait 3D du match (fabric/js/*.js + tools/build_data.py)
+=====================================================================
+Etat au 2026-10-16. Toutes les valeurs entre [CROCHETS] sont les noms des parametres dans fabric/js/config.js (objet P)
+ou dans build_data.py. Les durees "video" sont en secondes de video ; les durees "match" en secondes de match.
+Terrain : 105 m x 68 m. X = longueur (0 = but de l'equipe a domicile, 105 = but adverse), Y = largeur (0 = touche droite
+de l'equipe qui attaque vers 105, 68 = touche gauche).
+
+
+1. DONNEES UTILISEES
+--------------------
+1.1  Source principale : <Domicile>_vs_<Exterieur>_qualifiers_expanded.csv (export de postmatchdashboard_whoscored_v2.py).
+1.2  Momentum : <match>_momentum.csv recalcule depuis le CSV (methode AKapich, voir 1.9). Ordre de priorite :
+     momentum CSV > momentum FotMob (assets/momentum_fotmob.json) > ancien calcul de secours.
+1.3  Equipe a domicile = le cote 'home' de FotMob (<match>_match_info.csv), en rapprochant les noms WhoScored et
+     FotMob ('Man City' / 'Manchester City') ; --home "Nom" force un choix ; sans match_info.csv : equipe du premier
+     evenement 'Start'. EXCEPTION constatee : sur Roma-Real Madrid, WhoScored liste le 'Start' du Real en premier
+     alors que Roma recoit ; le controle 8 verifie maintenant que le domicile affiche est celui de FotMob.
+1.4  Identite des equipes : tout vient de <match>_match_info.csv (FotMob, ecrit par le script d'export), rien n'est
+     saisi a la main. L'equipe est retrouvee par son nom, sinon par le cote (home / away) de FotMob.
+     - Nom affiche (tableau de score, en majuscules, coupe par "..." s'il est trop long) et titre de la page :
+       team_name tel qu'il est dans match_info.csv. Pas de code a 3 lettres.
+     - Logo du tableau de score : team_logo de FotMob (un carre de la couleur d'equipe tant qu'il n'est pas charge).
+     - Couleur de chaque tissu : color_darkMode de FotMob (color_lightMode s'il manque), puis :
+       a. luminosite HSL ramenee entre 0,45 et 0,93 [MIN_LIGHT, MAX_LIGHT] (un tissu noir disparaitrait dans la
+          nuit, un blanc pur brulerait) ;
+       b. si les deux couleurs sont trop proches (ecart CIE76 < 25) [MIN_DELTA_E], l'exterieur prend son autre
+          couleur FotMob, sinon la premiere de blanc #ecedf0 / rouge #e5383b / jaune #f2c230 assez differente.
+     - Ces couleurs servent partout : tissus, courbe de momentum, buts / remplacements sur la barre, point du
+       curseur, barres et pastilles du score, numero des cartes joueur, statistiques de fin, ciel.
+     - Sans match_info.csv : noms WhoScored, bleu #4a74f2 / blanc #ecedf0, pas de logo.
+     France-Angleterre : France #3c65a9 (FotMob #365b98 eclairci), Angleterre #ededed (FotMob #FFFFFF), ecart 65,6.
+1.5  Coordonnees : le CSV est deja en metres, dans le repere de l'equipe qui agit. Pour l'equipe a l'exterieur on
+     retourne le repere : X -> 105 - X, Y -> 68 - Y. PassEndX/Y sont convertis de 0-100 en metres (x1.05, x0.68).
+1.6  Temps du match T = expandedMinute x 60 + second.
+1.7  Minute affichee : 1re mi-temps = floor(T/60)+1 (45+n dans les arrets de jeu) ; 2e mi-temps = 46 a la reprise
+     quelle que soit la duree des arrets de jeu de la 1re (90+n apres 90).
+1.8  Actions de progression ("prog") retenues pour le territoire :
+     - passe reussie : point d'arrivee (endX, endY), avec son xT ;
+     - conduite de balle >= 3 m [CARRY_MIN] : point de depart de la passe qui suit, 0,5 s avant la passe ;
+     - autres actions reussies avec ballon : la ou elles ont lieu ;
+     - EXCEPTION : duels perdus, dribbles rates, passes ratees ne font rien gagner (sauf les tirs, toujours gardes).
+1.9  xT et momentum (script d'export) : grille xT 12 x 8 (AKapich) posee sur le terrain 105 x 68 ;
+     xT d'un mouvement = xT(zone d'arrivee) - xT(zone de depart) ; mouvements = passes reussies + conduites ;
+     momentum par minute = pour chaque equipe, somme sur 4 minutes [MOMENTUM_WINDOW] du meilleur xT de chaque minute
+     (borne entre 0 et 0,1 [XT_CLIP]) pondere par exp(-0,25 x age) [MOMENTUM_DECAY], domicile - exterieur,
+     lisse par une gaussienne sigma 1 minute [MOMENTUM_SIGMA]. Correction faite : la case Y d'arrivee utilise end_y.
+1.10 Conduite de balle (carry) : point de reception = fin de la passe reussie du coequipier (ou le ballon gagne par le
+     joueur) ; les touches du joueur entre-temps gardent ce point ; conduite = ligne droite jusqu'a l'origine de sa
+     passe ; abandonnee si plus de 20 s entre reception et passe [MAX_CARRY_GAP_S].
+1.11 Fautes : une ligne "Successful" (equipe qui subit) + une ligne "Unsuccessful" (equipe fautive) au meme instant.
+     Equipe qui a le ballon = l'equipe fautive si WhoScored marque la faute 'Offensive', sinon l'equipe qui subit.
+     EXCEPTION : les fautes a moins de 30 s d'un but sont ignorees (le but prend le dessus).
+1.12 Contre-attaque : tir marque 'FastBreak' par WhoScored ; faute apres >= 25 m gagnes en <= 15 s par l'equipe
+     qui a le ballon [COUNTER_GAIN, COUNTER_DUR]. Debut de l'action = premier evenement d'une serie ininterrompue de
+     l'equipe (coupee par une action reussie de l'adversaire ou un trou de plus de 30 s, au plus 40 s en arriere).
+1.13 Corners = passes 'CornerTaken' ; coups francs = passes 'FreekickTaken' (avec leur point d'arrivee).
+1.14 Penalty : but qui suit un 'PenaltyFaced' a moins de 60 s, ou situation 'Penalty'.
+1.15 But contre son camp ('OwnGoal') : compte pour l'autre equipe, a l'endroit ou il a eu lieu.
+1.16 Cartons : evenements 'Card' (rouge si 'Red' ou 'SecondYellow', sinon jaune). Ce match n'en a aucun.
+     ?demoCards=1 dans l'URL ajoute 2 cartons fictifs marques DEMO pour voir les effets.
+1.17 Remplacements : 'SubstitutionOn' relie au joueur qui sort par relatedPlayerId.
+
+
+2. TEMPS DRAMATIQUE (duree de la video)
+---------------------------------------
+2.1  0,50 s de video par minute de match [BASE_DWELL].
+2.2  + (0,12 + 0,7 x xG) s par tir non marque dans la minute [SHOT_DWELL, SHOT_DWELL_XG].
+2.3  But : l'horloge s'arrete 3,5 s [GOAL_PAUSE] ; penalty : 8 s [PEN_PAUSE].
+2.4  Ralentissements ajoutes (temps de video en plus) :
+     - apres chaque but, sur 30 s de match : +1,7 s [GOAL_SLOW, GOAL_HOLD] ; idem a la reprise de la 2e mi-temps ;
+     - pause de mi-temps : +3,0 s [HALF_SLOW] (le temps de la rotation de camera) ;
+     - autour de chaque faute (20 s de match) : +0,7 s [FOUL_SLOW] ;
+     - chaque carton : +1,6 s [CARD_SLOW] ;
+     - bascule : quand une action d'une equipe suit celle de l'autre loin sur le terrain, le temps est rallonge pour
+       que la ligne traverse a environ 45 m/s, au plus +2,5 s [SWING_V, SWING_MAX] ;
+     - deplacement : la ou le CSV fait beaucoup bouger la ligne en peu de temps, rallonge pour que la ligne bouge a
+       environ 45 m/s en moyenne, au plus +4 s par segment [FRONT_V, FRONT_SLOW_MAX].
+2.5  Fin : 3 s de pause apres le coup de sifflet final [END_HOLD]. Video actuelle : environ 282 s.
+
+
+3. LA LIGNE DE TERRITOIRE (front bleu / blanc)
+----------------------------------------------
+3.1  Deux tissus independants : le bleu part de son but, le blanc du sien ; ils se rencontrent sur la ligne.
+     La ligne est decrite par 35 couloirs de 2 m sur la largeur.
+3.2  Depart : ligne droite sur la ligne mediane (52,5 m).
+3.3  Le CSV pousse la ligne : chaque action de progression (1.8), dans l'ordre du match, exige que la ligne de son
+     equipe soit 3 m au-dela de l'endroit de l'action [B_MARGIN] ; si elle n'y est pas, la partie de ligne autour
+     est poussee jusque-la (bosse gaussienne de 16 m [B_SIG], plus 5 % de toute la ligne [G_BASE]).
+     EXCEPTION : poussee de moins de 0,5 m ignoree [B_MIN].
+3.4  Le terrain gagne reste acquis jusqu'a ce que les actions de l'adversaire le reprennent.
+3.5  Lissage : entre deux actions, la ligne s'arrondit (une passe de diffusion toutes les 0,7 s de match, force 0,25)
+     [B_DIFF_DT, B_DIFF] pour que les pointes isolees se resorbent.
+3.6  La ligne joue ces etapes sur sa propre horloge : jamais plus vite que 70 m/s pour un couloir (jusqu'a 2 fois
+     plus en rattrapage si elle est tres en retard) [V_MAX, LAG_REF].
+3.7  Une seule direction a la fois : a chaque image, seuls les couloirs qui bougent dans le sens dominant bougent ;
+     les autres attendent. Le sens choisi est garde au moins 0,5 s [DIR_HOLD] ; un couloir qui attend depuis 0,6 s
+     obtient son tour [DIR_MAX_WAIT]. Vitesse d'un couloir plafonnee a 110 m/s [V_LANE].
+     Les couloirs portes par une percee (4.) comptent 6 fois plus dans le choix du sens.
+     EXCEPTION : quand la percee d'une faute tire la ligne dans l'autre sens, le sens change tout de suite (sans
+     attendre 0,5 s), pour que la ligne soit au point de la faute a temps.
+     EXCEPTIONS : l'inondation de couleur d'un but et le recentrage apres un but ne suivent pas cette regle.
+3.8  Bornes : la ligne reste entre 1 m et 104 m (3 m et 102 m pour les etapes du CSV).
+
+
+4. LES PERCEES (une partie de la ligne court vers une action)
+-------------------------------------------------------------
+4.1  Concerne : chaque tir, chaque but, chaque corner (point d'arrivee du corner), chaque faute (point de la faute).
+4.2  Tirs, buts, corners : la ligne de l'equipe qui attaque doit avoir depasse le point de 3 m [PERC_MARGIN] au
+     moment de l'action (la pointe s'arrete au point du tir, a la position WhoScored, verifiee contre FotMob). EXCEPTION : si elle y est deja, rien ne bouge.
+4.3  Fautes : la ligne vient AU point de la faute, a 2 m pres [FOUL_MARGIN], dans les deux sens : elle avance si
+     elle est en deca, elle recule (poussee par l'autre equipe) si l'equipe qui a le ballon est deja bien au-dela.
+4.4  Forme : langue etroite pour une contre-attaque (sigma 4 m) [PERC_SIG_C], bosse plus large sinon (7 m) [PERC_SIG].
+4.5  Temps (en video) : la percee monte depuis le debut de l'action d'equipe, en 0,6 a 2 s (plus long pour un long
+     trajet, ~30 m/s) [PERC_RISE_MIN, PERC_RISE_MAX, PERC_V], jamais plus vite que 0,3 s [PERC_MIN_MOVE] ;
+     elle est complete 0,25 s avant l'action [PERC_LEAD] et ne commence jamais avant l'action precedente de l'autre
+     equipe (meme quand les actions s'enchainent : elle monte alors plus vite, en 0,3 s au moins), tient 0,35 s (0,6 s pour une faute) [PERC_HOLD,
+     PERC_HOLD_FOUL], puis redescend en 1,3 s [PERC_DECAY].
+4.6  Plusieurs percees : celles d'une meme equipe se combinent par le maximum (pas de double comptage) ; celles des
+     deux equipes s'additionnent. Quand l'autre equipe a une action, ou quand vient une faute (de n'importe quelle
+     equipe), l'ancienne percee s'efface en douceur pendant les derniers instants avant cette action, jamais avant
+     sa propre action ; la nouvelle ne commence pas avant l'ancienne action : au moment de chaque action, c'est sa
+     propre percee qui fixe la ligne.
+4.7  EXCEPTIONS : une percee est effacee par l'inondation d'un but ou par la reprise de la 2e mi-temps qui suit ;
+     aucune percee ne commence pendant la pause d'un but ni dans la seconde et demie de calme apres l'engagement
+     [GOAL_CALM] ni pendant le replacement de mi-temps ; la percee d'une faute s'arrete quand commence sa reprise (5.).
+
+
+5. LES FAUTES
+-------------
+5.1  Flash blanc a l'endroit de la faute, anneau qui s'elargit, ligne de la faute eclairee sur toute la largeur,
+     leger flash de l'ecran, etiquette "FOUL · joueur fautif minute" (1,1 s) [FLASH_DUR].
+5.2  Percee vers le point de la faute (4.3).
+5.3  Reprise a plat : 0,6 s apres la faute (fin de la percee), toute la ligne glisse calmement vers une ligne droite
+     au niveau de la faute, en deux temps (d'abord la partie qui va dans le sens dominant, puis l'autre), au moins
+     1,4 s (plus long pour un long trajet, ~18 m/s) [FOUL_RESET, RESET_V], puis y reste 0,6 s [FOUL_LINE_HOLD].
+     Les percees des autres actions restent visibles par-dessus. Le jeu repart de cette ligne.
+5.4  Relief de la bataille aplati : tout de suite apres la faute il descend calmement (0,45 s) [CALM_DOWN], reste a
+     plat 35 s de match [FOUL_HOLD] puis remonte sur 150 s de match [FOUL_FLAT] (remontee lissee 1,2 s [CALM_UP]).
+     EXCEPTION : les collines de tirs, corners, coups francs et avancees ne sont PAS aplaties par une faute.
+
+
+6. LES BUTS
+-----------
+6.1  Avant le but (preparation) : tant que l'equipe qui marque a le ballon, aucune partie de sa ligne ne recule a
+     l'ecran, jusqu'au debut de l'inondation (pas seulement jusqu'a l'instant du but).
+     Possession (calculee dans build_data.py depuis le CSV, champ "poss" du but) : elle commence juste apres la
+     derniere action de l'adversaire avec le ballon (touche reussie, ou passe quelle qu'elle soit : une passe ratee
+     rend le ballon), au plus 120 s avant le but [POSS_MAX], jamais avant le debut de la mi-temps. La protection dure
+     au moins les 5 s de video avant le but [GOAL_BUILD]. Sur France-Angleterre : de 0 s (87') a 116 s (45+1').
+     EXCEPTIONS : la protection commence seulement apres la derniere action (tir / faute / corner) de l'adversaire
+     et apres l'engagement precedent ; une reprise de faute (5.3) reste prioritaire (la ligne revient a plat sur la
+     faute), mais pendant la possession elle ne marque pas de pause au point de la faute et la protection repart de
+     la ligne a l'ecran a la fin de la glissade.
+6.2  Pendant la pause du but (3,5 s) : la fleche du buteur monte (48,6 m, rayon 20,7 m) [GOAL_H, GOAL_R], la carte du
+     buteur (photo, numero, nom, age, club) apparait, le score change, le ciel prend la couleur du buteur ;
+     a 1,14 s toute la surface est inondee de la couleur du buteur [FLOOD_AT], a 2,2 s elle se retire [UNFLOOD_AT],
+     puis la ligne glisse exactement sur la ligne mediane (fini 0,3 s avant la reprise).
+     Les collines des tirs plus anciens disparaissent avec l'inondation.
+6.3  Penalty : le terrain s'eteint en noir avec les lignes, une lueur dans la surface, la couleur du tireur se
+     deroule en vague depuis le point de penalty [PEN_WAVE], puis inondation (pause de 8 s).
+6.4  Engagement apres un but : ligne droite exactement sur la mediane (52,5 m), tout le relief a plat, pendant
+     30 s de match ralenties a environ 2 s de video [GOAL_HOLD, GOAL_SLOW] ; eclair au point central, ligne mediane
+     eclairee, etiquette "KICK-OFF". Le relief reste a plat 25 s de match puis remonte sur 120 s de match
+     [RESTART_HOLD, RESTART_RAMP].
+6.5  Seuls les buts sont hauts (fleche de 48,6 m) ; tout le reste est bas (7.).
+
+
+7. LE RELIEF
+------------
+7.1  Relief de la bataille : l'equipe qui domine (plus de territoire, melange avec le momentum) est dessus : corps
+     large qui monte vers une crete a 16 m derriere sa ligne (jusqu'a 20 m de haut x force) [TOP_H, PEAK_D, PEAK_S...] ;
+     l'equipe poussee reste basse avec un petit bourrelet sur sa ligne [LIP_H...]. Force entre 0,55 et 1 selon la
+     domination [STR_FLOOR, STR_GAIN]. Changement de "qui est dessus" avec hysteresis [DOM_HYST].
+7.2  Le tissu du dessus est toujours 0,3 m plus haut que l'autre [TOP_LIFT] (sinon la frontiere scintille).
+7.3  Occasions (tirs non marques) : colline BASSE de 9 m [XG_BASE], dont la LARGEUR grandit avec l'xG
+     (rayon 7 m + 55 m x xG) [HILL_W0, HILL_WXG] ; elle s'ouvre puis s'etale, et decroit sur environ 260 s de match
+     [HILL_TAU_A]. Une large base de 4 m (rayon 24 m) se souleve aussi sous le tir [SHOT_BASE, SHOT_BASE_R].
+     EXCEPTION : une colline (et son etiquette) s'efface des que la ligne est revenue plus de 2 m en arriere du
+     point du tir (fondu sur 2,5 m) [HILL_OUT, HILL_FADE] : pas de colline dans le terrain de l'autre equipe.
+7.4  Avancees : chaque action de progression souleve le tissu ou elle arrive : jusqu'a 8 m, plus pres du but
+     adverse [ADV_H], plus LARGE avec l'xT (rayon 13 m -> 35 m, xT de reference 0,03) [ADV_R, ADV_RX, ADV_XT_REF] ;
+     monte en 0,15 s, retombe en ~0,7 s [ADV_TAU]. EXCEPTION : les petites actions loin du but et sans xT sont ignorees.
+7.4b Tacles reussis (WhoScored 'Tackle', Successful) : bosse de 7 m sur 18 m de rayon la ou le ballon est gagne,
+     partout sur le terrain [TACKLE_H, TACKLE_R] (ils comptent aussi dans la ligne de territoire, 1.8).
+7.5  Pointe de percee : 6 m x (0,4 + proximite du but) [PERC_H], plus large avec l'xG [PERC_WXG].
+7.6  Corners : bosse de 8 m la ou le corner retombe ; coups francs : jusqu'a 7 m la ou va le ballon, plus haut pres
+     du but ; rayon 30 m ; montee 0,2 s, retombee ~1,1 s [SET_H_CORNER, SET_H_FK, SET_R, SET_TAU].
+7.7  Plafond : hors buts, la somme de tous ces reliefs est plafonnee en douceur a 14 m [RELIEF_CAP]
+     (h -> 14 x (1 - e^(-h/14))). La fleche des buts est ajoutee apres : seuls les buts depassent.
+     EXCEPTION, contre-attaques : vague de 18 m [COUNTER_WAVE] sur le tissu de l'attaquant, en crete juste derriere
+     le front de sa percee (4 m derriere, epaisseur 6 m, largeur 9 m) [CW_D, CW_S, CW_W], ajoutee apres le plafond.
+     Contre-attaque = tir 'FastBreak' (WhoScored) ou action d'equipe qui a gagne >= 25 m en <= 15 s (tirs et fautes).
+7.8  Teinte de tir : le tissu prend la couleur du tireur a l'endroit du tir pendant 1,2 s [TINT_LIFE], seulement si
+     la ligne est a moins de 8 m du point [TINT_NEAR].
+7.9  Le relief suit sa cible avec un lissage de 0,2 s [H_TAU] (pas de saccade).
+
+
+8. MI-TEMPS
+-----------
+8.1  Au coup de sifflet de la 1re mi-temps, la ligne revient d'abord a plat sur la ligne mediane en 1,6 s
+     [HALF_RESET], en deux temps comme pour les fautes, et y reste jusqu'a la reprise. Les percees en cours sont
+     effacees ; aucune reprise de faute ne commence entre le sifflet et la reprise (le replacement de mi-temps gagne).
+8.2  Ensuite seulement (1,8 s apres le sifflet) [HALF_FLAT], la camera fait un demi-tour (180 degres) autour du
+     centre, avec la lumiere : en 2e mi-temps les equipes attaquent dans l'autre sens a l'ecran. Pause de mi-temps :
+     +4,5 s de video [HALF_SLOW].
+8.3  Affichage "1ST HALF" tant que la 2e mi-temps n'a pas commence (y compris les arrets de jeu), "2ND HALF" ensuite,
+     "EXTRA TIME 1" / "EXTRA TIME 2" en prolongation, "FULL TIME" a la fin ; les statistiques finales (xG, tirs,
+     corners, cartons) apparaissent apres le coup de sifflet.
+8.4  Prolongations : les deux periodes de prolongation sont dessinees comme les mi-temps. Chaque pause (mi-temps, fin
+     du temps reglementaire, pause de prolongation) suit 8.1 et 8.2 : ligne a plat sur la mediane, puis demi-tour de
+     la carte (0 -> 180 -> 360 -> 540 degres), coup d'envoi a plat. Minutes affichees 91..105(+n) puis 106..120(+n) ;
+     la barre de momentum garde sa largeur et couvre 120 minutes, avec un trait a 45', 90' et 105'.
+     EXCEPTIONS : les tirs au but ne sont pas dessines (retires des donnees) ; quand WhoScored fait chevaucher les
+     temps de deux periodes (ex. 2e mi-temps finie a 97:11, prolongation commencee a 97:00), build_data.py decale la
+     periode suivante d'un nombre entier de minutes (le validateur le signale en INFO).
+
+
+9. CARTONS
+----------
+9.1  Petit carton jaune ou rouge sur la barre de momentum, a la minute, cote equipe (France en haut, Angleterre en bas).
+9.2  Effet plein ecran (2,6 s) [CARD_FX] : le carton tombe en tournant avec un halo, legende "YELLOW/RED CARD ·
+     joueur minute" ; rouge : l'ecran pulse deux fois en rouge depuis les bords ; jaune : averse de pluie oblique
+     avec eclaboussures sur le terrain. L'horloge ralentit (+1,6 s).
+
+
+10. BARRE DU BAS (momentum)
+---------------------------
+10.1 Courbe du momentum (1.2), bleu au-dessus (domicile), gris en dessous (exterieur), dessinee jusqu'a la minute
+     courante ; trait vertical a la mi-temps.
+10.2 Buts : ballon au bout d'un trait pointille, cote de l'equipe.
+10.3 Remplacements : pastille ⇄, empilees par equipe et par minute ; texte "↑ entrant (vert) ↓ sortant (rouge)"
+     sur fond sombre, visible 6 minutes de match apres le changement.
+10.4 Cartons : 9.1.
+10.5 Curseur : trait vertical + point de la couleur de l'equipe qui pousse sur la carte 3D (meme signal que le relief).
+     Le trait est dessine sous les reperes pour ne jamais barrer un nom.
+10.6 Cliquer ou glisser sur la barre fait sauter a cette minute (avant ou arriere). Le saut rejoue la simulation
+     legere depuis le debut, puis 1,5 s complete : l'image est identique a une lecture continue.
+
+
+11. INTERFACE
+-------------
+11.1 Score, buteurs et minutes, horloge, mi-temps ; bouton pause/lecture (clic ou barre espace) ; pas de bouton son.
+11.2 Etiquette d'occasion : "Joueur · SAVED / OFF TARGET / POST · xG" pour TOUS les tirs (au-dessus de leur petite
+     montagne) [TIP_XG = 0], seulement quand la colline est vraiment levee (> 4 m), pendant 40 s de match au plus
+     (fondu sur les 10 dernieres) [TIP_LIFE], au plus haut a 56 px du haut de l'ecran.
+11.2b Buts au tableau de score : minute puis nom du buteur (nom complet au survol).
+11.2c Polices (assets/fonts/fonts.css, incluses dans le projet) : chiffres et noms des equipes en Inter Black ;
+     tous les textes et libelles en Poppins ; Helvetica en dernier recours. La video attend que les polices soient
+     chargees avant la 1re image.
+11.3 Ciel : le fond prend la couleur de l'equipe qui domine (territoire + momentum), d'autant plus que l'ecart est
+     grand : intensite = racine(|domination| / 0,3) [SKY_DOM_FULL], couleur pleine a partir de 0,3. Couleur du buteur
+     pendant un but, bleu nuit pendant le penalty, s'assombrit a la fin.
+
+
+12. VERIFICATIONS AUTOMATIQUES (pour tout autre match)
+------------------------------------------------------
+12.1 python tools/validate_events.py <csv> [--momentum ...] [--fotmob ...] — regles sur les donnees : terrain,
+     paires de fautes au meme endroit, fautes offensives, tirs dans la bonne moitie, PassEnd = endX/endY, marqueurs
+     de fin de periode, ordre du temps, conduites < 60 m, cartons = FotMob, signe de l'xT, momentum vs FotMob,
+     prolongations (avertissement), buts contre son camp.
+12.2 python test_export.py <csv> — colonnes de l'export (qualifiers, zones 1-18, zones de phase, couloirs, distance,
+     conduites, xT).
+12.3 node tools/check_engine.js — regles du moteur sur la simulation :
+     tirs/buts/corners atteints, ligne au point de chaque faute (<= 6 m), >= 85 % des actions du CSV du bon cote de la
+     ligne (a 5 m pres), reprise a plat sur la mediane apres chaque but (1,5 s), pas de recul de plus de 2 m pendant
+     la possession avant un but (jusqu'a l'inondation), aucune colline dans le terrain adverse, vitesse <= 150 m/s,
+     gain et perte simultanes < 3 % des images, noms / logos / couleurs venant de match_info.csv et affiches a
+     l'ecran, tissus assez differents (ecart >= 25).
+     Regle 10 : la ligne est plate sur la mediane pendant toute la rotation de mi-temps.
+     Resultat actuel (10 regles sur 10 pour chaque match) :
+       France-Angleterre : 45/45 actions, 22/22 fautes, 89,1 % du CSV ;
+       Manchester City-PSG (Ligue des champions 2026/27) : 55/55 actions, 21/21 fautes, 89,7 % du CSV ;
+       Liverpool-PSG (Ligue des champions 2024/25, prolongation) : 58/58 actions, 20/20 fautes, 92,9 % du CSV, 3 pauses.
+
+
+13. LIMITES CONNUES
+-------------------
+13.1 Tirs au but : pas dessines (les prolongations le sont, voir 8.4).
+13.2 Photos / age / club / numero des joueurs : <match>_players.csv (compositions FotMob, ecrit par le script
+     d'export) ; photo = https://images.fotmob.com/image_resources/playerimages/<id>.png ; club pour les equipes
+     nationales, pays pour les clubs. Sans ce fichier ou sans photo, la carte s'affiche quand meme (nom seul).
+13.3 Une image sur cent environ montre encore un gain et une perte en meme temps (rattrapage de couloirs en attente).
+13.4 Les couleurs sont fixes : domicile bleu, exterieur blanc.
+
+
+14. PARAMETRES QUI NE SERVENT PLUS (anciens moteurs, sans effet aujourd'hui)
+----------------------------------------------------------------------------
+FRONT_TAU, LANE_SIGMA, SEAM_SMOOTH, SEAM_GAIN, SEAM_OFFSET, PRIOR_W, BALL_WINDOW, UNFLOOD_K, UNFLOOD_DUR, SURGE_SIG,
+SURGE_TAU, SURGE_RISE, SURGE_A, SURGE_XG, SURGE_MARGIN, SURGE_LEAD, MOM_SEAM, FOUL_TAU, G_MIN, G_MAX, G_SIG, STEP_FRAC,
+STEP_MAX, G_MOM0, MOM_TIE, GOAL_BUILD_W, HILL_S0. XG_SCALE et PERC_XG valent 0 (la hauteur ne depend plus de l'xG).
+
+
+14. AJOUTS DU 17/10/2026
+------------------------
+14.1 Coup d'envoi au milieu, vraiment : au debut du match et a la reprise de chaque periode, l'horloge s'arrete
+     1,5 s [KICK_PAUSE] avec la ligne droite sur la mediane ; la ligne CSV y reste 20 s de match ; aucune percee ne
+     commence pendant cette pause ni dans les 1,7 s qui suivent [GOAL_CALM] ; ralenti de +1,7 s sur les 30 premieres
+     secondes de match [GOAL_SLOW]. Le controle 4 verifie le debut, chaque reprise et chaque but.
+14.2 Penalty non marque (tir 'Penalty' arrete, manque, poteau) : l'horloge s'arrete 4,2 s [PENMISS_PAUSE], tout devient
+     noir sauf la surface eclairee (comme un penalty marque, sans le deroule du tissu) ; etiquette
+     "PENALTY SAVED / PENALTY MISSED / PENALTY · POST · tireur · minute" ; pas d'inondation, pas de changement de score.
+14.3 Tirs non marques : vague de 14 m [SHOT_WAVE] le long du front de la percee (contre-attaque : 18 m) ; la crete
+     est 7 m derriere le front [CW_D] et la vague vaut 0 au bord avant, qu'elle rejoint en 6 m [CW_EDGE] : le bord du
+     tissu reste pose sur l'autre (sinon un vide apparait sous la vague, constate sur City-PSG, Hakimi 31'), et petit
+     ralenti de +0,9 s de video sur les 8 s de match qui suivent [SHOT_SLOW, SHOT_SLOW_T] pour voir le relief.
+14.4 Possession avant un but (6.1) : une faute COMMISE par l'equipe qui marque (ex. faute offensive) lui fait perdre
+     le ballon et met fin a sa possession ; une faute subie ne l'arrete pas. La protection "pas de recul" commence
+     apres la derniere faute (de n'importe quelle equipe) avant le but.
+14.5 Percees : une percee ne commence jamais avant son depart autorise (pause de coup d'envoi, calme apres un but),
+     quitte a etre complete un peu apres son action ; quand une percee est completement sortie et que ses couloirs
+     sont en retard dans l'autre sens, la ligne bascule tout de suite dans son sens (au plus une fois toutes les
+     0,2 s) - exception a la regle 3.7 (sens garde 0,5 s).
+14.6 Resultat : 10 regles sur 10 pour France-Angleterre, Manchester City-PSG, Liverpool-PSG (prolongation) et
+     Roma-Real Madrid (Ligue des champions 2026/27, FotMob 6106274, WhoScored 2029142).
+14.7 Photos et logos : build_data.py les telecharge une fois dans assets/media/ (3 essais, certificats certifi) et
+     la page utilise ces copies locales ; render.js attend que toutes les images soient chargees avant la 1re image
+     et ecrit "images: n/n loaded" (ou la liste des manquantes). Cause corrigee : des echecs reseau passagers vers
+     images.fotmob.com laissaient des cartes sans photo (France-Angleterre, Manchester City-PSG).
+14.8 Coup d'envoi vraiment au milieu et a plat : le tissu du dessus deborde de 2,5 m [OVERLAP] pour couvrir le
+     bourrelet de l'autre ; ce debord tombe a 0 quand le relief est a plat (coups d'envoi, pauses), donc la frontiere
+     visible est exactement sur la mediane (52,5 m). Le relief est a plat au coup d'envoi lui-meme (horloge figee) et
+     des le coup de sifflet de chaque periode jusqu'a la reprise, avant que la carte tourne. Le match commence a plat.
+     Controles 4 et 9 : ligne sur la mediane ET relief a plat (<= 5 %).
+14.9 Horloge : elle affiche le temps joue, 0' au coup d'envoi, 45' a la reprise, 90' / 105' en prolongation (plafonnee
+     pendant les arrets de jeu) ; les minutes des evenements gardent la convention football (but a 19:45 = 20').
+14.10 Vagues de progression : chaque couloir garde les metres gagnes recemment (oubli sur 1,2 s) [GAIN_TAU] ; le front
+     de l'equipe qui avance monte en vague d'autant plus haut (jusqu'a 14 m, moitie apres ~10 m gagnes) [GAIN_WAVE,
+     GAIN_REF] ; seulement en jeu (pas pendant les replacements, inondations, pauses). Vagues de tir / contre-attaque /
+     progression d'un meme tissu : la plus haute l'emporte (pas d'addition).
+14.11 Pic de tir : au moment d'un tir non marque, sa montagne monte de 16 m de plus (~22 m), ajoute apres le plafond,
+     puis retombe en ~1,2 s de video [SHOT_PEAK, SHOT_PEAK_TAU]. Les buts restent plus hauts (48,6 m).
+14.12 Video : H.264 yuv420p plage standard BT.709 (les images rendues sont des JPEG plage complete) pour etre lue
+     partout (QuickTime, navigateurs, telephones) - tools/encode.sh et pmd.make3d.
+

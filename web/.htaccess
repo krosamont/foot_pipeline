@@ -1,0 +1,7 @@
+# pages, scripts and match data change with each publication: the browser must check them again (ETag) before using
+# its copy; images and fonts keep the server's default caching
+<IfModule mod_headers.c>
+  <FilesMatch "\.(html|js|json)$">
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
+</IfModule>

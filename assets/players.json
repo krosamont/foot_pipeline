@@ -1,0 +1,410 @@
+[
+ {
+  "id": 466439,
+  "name": "Mike Maignan",
+  "age": 31,
+  "club": "Milan",
+  "shirt": "16",
+  "team": "France"
+ },
+ {
+  "id": 1197250,
+  "name": "Malo Gusto",
+  "age": 23,
+  "club": "Chelsea",
+  "shirt": "2",
+  "team": "France"
+ },
+ {
+  "id": 820140,
+  "name": "Ibrahima Konaté",
+  "age": 27,
+  "club": "Real Madrid",
+  "shirt": "15",
+  "team": "France"
+ },
+ {
+  "id": 950485,
+  "name": "Maxence Lacroix",
+  "age": 26,
+  "club": "Crystal Palace",
+  "shirt": "26",
+  "team": "France"
+ },
+ {
+  "id": 724371,
+  "name": "Theo Hernández",
+  "age": 28,
+  "club": "Al Hilal",
+  "shirt": "19",
+  "team": "France"
+ },
+ {
+  "id": 1367615,
+  "name": "Warren Zaïre-Emery",
+  "age": 20,
+  "club": "Paris Saint-Germain",
+  "shirt": "18",
+  "team": "France"
+ },
+ {
+  "id": 352879,
+  "name": "Adrien Rabiot",
+  "age": 31,
+  "club": "Milan",
+  "shirt": "14",
+  "team": "France"
+ },
+ {
+  "id": 1029063,
+  "name": "Michael Olise",
+  "age": 24,
+  "club": "Bayern München",
+  "shirt": "11",
+  "team": "France"
+ },
+ {
+  "id": 1104053,
+  "name": "Rayan Cherki",
+  "age": 22,
+  "club": "Manchester City",
+  "shirt": "24",
+  "team": "France"
+ },
+ {
+  "id": 1339208,
+  "name": "Désiré Doué",
+  "age": 21,
+  "club": "Paris Saint-Germain",
+  "shirt": "20",
+  "team": "France"
+ },
+ {
+  "id": 701154,
+  "name": "Kylian Mbappé",
+  "age": 27,
+  "club": "Real Madrid",
+  "shirt": "10",
+  "team": "France"
+ },
+ {
+  "id": 658554,
+  "name": "Dayot Upamecano",
+  "age": 27,
+  "club": "Bayern München",
+  "shirt": "4",
+  "team": "France"
+ },
+ {
+  "id": 210111,
+  "name": "Lucas Digne",
+  "age": 32,
+  "club": "Aston Villa",
+  "shirt": "3",
+  "team": "France"
+ },
+ {
+  "id": 1297165,
+  "name": "Bradley Barcola",
+  "age": 23,
+  "club": "Paris Saint-Germain",
+  "shirt": "12",
+  "team": "France"
+ },
+ {
+  "id": 692984,
+  "name": "Ousmane Dembélé",
+  "age": 29,
+  "club": "Paris Saint-Germain",
+  "shirt": "7",
+  "team": "France"
+ },
+ {
+  "id": 705450,
+  "name": "Jules Koundé",
+  "age": 27,
+  "club": "Barcelona",
+  "shirt": "5",
+  "team": "France"
+ },
+ {
+  "id": 279714,
+  "name": "Brice Samba",
+  "age": 32,
+  "club": "Rennes",
+  "shirt": "1",
+  "team": "France"
+ },
+ {
+  "id": 1390336,
+  "name": "Robin Risser",
+  "age": 21,
+  "club": "Lens",
+  "shirt": "23",
+  "team": "France"
+ },
+ {
+  "id": 504606,
+  "name": "Lucas Hernández",
+  "age": 30,
+  "club": "Paris Saint-Germain",
+  "shirt": "21",
+  "team": "France"
+ },
+ {
+  "id": 955406,
+  "name": "William Saliba",
+  "age": 25,
+  "club": "Arsenal",
+  "shirt": "17",
+  "team": "France"
+ },
+ {
+  "id": 914458,
+  "name": "Aurélien Tchouaméni",
+  "age": 26,
+  "club": "Real Madrid",
+  "shirt": "8",
+  "team": "France"
+ },
+ {
+  "id": 1016132,
+  "name": "Manu Koné",
+  "age": 25,
+  "club": "Roma",
+  "shirt": "6",
+  "team": "France"
+ },
+ {
+  "id": 319300,
+  "name": "N'Golo Kanté",
+  "age": 35,
+  "club": "Fenerbahçe",
+  "shirt": "13",
+  "team": "France"
+ },
+ {
+  "id": 706297,
+  "name": "Jean-Philippe Mateta",
+  "age": 29,
+  "club": "Crystal Palace",
+  "shirt": "22",
+  "team": "France"
+ },
+ {
+  "id": 1305618,
+  "name": "Maghnes Akliouche",
+  "age": 24,
+  "club": "Monaco",
+  "shirt": "25",
+  "team": "France"
+ },
+ {
+  "id": 621562,
+  "name": "Marcus Thuram",
+  "age": 28,
+  "club": "Inter",
+  "shirt": "9",
+  "team": "France"
+ },
+ {
+  "id": 719330,
+  "name": "Dean Henderson",
+  "age": 29,
+  "club": "Crystal Palace",
+  "shirt": "13",
+  "team": "England"
+ },
+ {
+  "id": 1107620,
+  "name": "Jarell Quansah",
+  "age": 23,
+  "club": "Bayer Leverkusen",
+  "shirt": "26",
+  "team": "England"
+ },
+ {
+  "id": 710159,
+  "name": "Ezri Konsa",
+  "age": 28,
+  "club": "Aston Villa",
+  "shirt": "2",
+  "team": "England"
+ },
+ {
+  "id": 844425,
+  "name": "Marc Guéhi",
+  "age": 26,
+  "club": "Manchester City",
+  "shirt": "6",
+  "team": "England"
+ },
+ {
+  "id": 894803,
+  "name": "Djed Spence",
+  "age": 25,
+  "club": "Tottenham Hotspur",
+  "shirt": "25",
+  "team": "England"
+ },
+ {
+  "id": 654096,
+  "name": "Declan Rice",
+  "age": 27,
+  "club": "Arsenal",
+  "shirt": "4",
+  "team": "England"
+ },
+ {
+  "id": 961995,
+  "name": "Bukayo Saka",
+  "age": 24,
+  "club": "Arsenal",
+  "shirt": "7",
+  "team": "England"
+ },
+ {
+  "id": 883080,
+  "name": "Morgan Rogers",
+  "age": 23,
+  "club": "Aston Villa",
+  "shirt": "17",
+  "team": "England"
+ },
+ {
+  "id": 818975,
+  "name": "Eberechi Eze",
+  "age": 28,
+  "club": "Arsenal",
+  "shirt": "21",
+  "team": "England"
+ },
+ {
+  "id": 696365,
+  "name": "Marcus Rashford",
+  "age": 28,
+  "club": "Manchester United",
+  "shirt": "11",
+  "team": "England"
+ },
+ {
+  "id": 408987,
+  "name": "Ivan Toney",
+  "age": 30,
+  "club": "Al Ahli",
+  "shirt": "22",
+  "team": "England"
+ },
+ {
+  "id": 540088,
+  "name": "Ollie Watkins",
+  "age": 30,
+  "club": "Aston Villa",
+  "shirt": "19",
+  "team": "England"
+ },
+ {
+  "id": 1089691,
+  "name": "Elliot Anderson",
+  "age": 23,
+  "club": "Manchester City",
+  "shirt": "8",
+  "team": "England"
+ },
+ {
+  "id": 1077894,
+  "name": "Jude Bellingham",
+  "age": 23,
+  "club": "Real Madrid",
+  "shirt": "10",
+  "team": "England"
+ },
+ {
+  "id": 807729,
+  "name": "Reece James",
+  "age": 26,
+  "club": "Chelsea",
+  "shirt": "24",
+  "team": "England"
+ },
+ {
+  "id": 793907,
+  "name": "Trevoh Chalobah",
+  "age": 27,
+  "club": "Chelsea",
+  "shirt": "12",
+  "team": "England"
+ },
+ {
+  "id": 1187213,
+  "name": "James Trafford",
+  "age": 23,
+  "club": "Manchester City",
+  "shirt": "23",
+  "team": "England"
+ },
+ {
+  "id": 303919,
+  "name": "Jordan Pickford",
+  "age": 32,
+  "club": "Everton",
+  "shirt": "1",
+  "team": "England"
+ },
+ {
+  "id": 188058,
+  "name": "Daniel Burn",
+  "age": 34,
+  "club": "Newcastle United",
+  "shirt": "15",
+  "team": "England"
+ },
+ {
+  "id": 263653,
+  "name": "John Stones",
+  "age": 32,
+  "club": null,
+  "shirt": "5",
+  "team": "England"
+ },
+ {
+  "id": 1300526,
+  "name": "Nico O'Reilly",
+  "age": 21,
+  "club": "Manchester City",
+  "shirt": "3",
+  "team": "England"
+ },
+ {
+  "id": 156008,
+  "name": "Jordan Henderson",
+  "age": 36,
+  "club": "Brentford",
+  "shirt": "14",
+  "team": "England"
+ },
+ {
+  "id": 906937,
+  "name": "Anthony Gordon",
+  "age": 25,
+  "club": "Barcelona",
+  "shirt": "18",
+  "team": "England"
+ },
+ {
+  "id": 194165,
+  "name": "Harry Kane",
+  "age": 32,
+  "club": "Bayern München",
+  "shirt": "9",
+  "team": "England"
+ },
+ {
+  "id": 1084981,
+  "name": "Noni Madueke",
+  "age": 24,
+  "club": "Arsenal",
+  "shirt": "20",
+  "team": "England"
+ }
+]

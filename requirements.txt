@@ -1,0 +1,19 @@
+# Versions tested with the pipeline (pmd/) — `pip install -r requirements.txt`
+# pandas 3 is NOT supported by the legacy notebook script (positional Series access); pmd/ works with both.
+pandas==2.3.3
+numpy==2.5.4
+scipy==1.18.1
+matplotlib==3.11.2
+mplsoccer==1.8.1
+highlight-text==0.2
+seaborn==0.13.2
+scikit-learn==1.9.1
+pillow==12.3.0
+requests==2.34.2
+certifi>=2024.2.2
+# WhoScored download (anti-bot cascade)
+curl_cffi==0.16.3
+nest-asyncio==1.6.0
+playwright==1.64.0
+playwright-stealth==2.0.3
+soccerdata==1.9.1

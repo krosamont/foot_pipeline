@@ -1,0 +1,5 @@
+# MotherDuck / data lake (tools/to_bronze.py, foot_dbt/)
+# MotherDuck does not support DuckDB 2.x yet: keep 1.5.x until it does
+duckdb==1.5.6
+dbt-core==1.12.6
+dbt-duckdb==1.11.1

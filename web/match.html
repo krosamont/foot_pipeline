@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Match en 3D · Data Workers</title>
+<link rel="stylesheet" href="assets/fonts/fonts.css">
+<style>
+  :root { --bg: #000; --bar: #0b0d16; --line: rgba(255, 255, 255, 0.08); --text: #f2f3f7; --muted: #9ca1b4; --accent: #2dc4c2; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font-family: var(--font-text); overflow: hidden; }
+  .bar { position: fixed; left: 0; right: 0; top: 0; height: 52px; display: flex; align-items: center; gap: 14px; padding: 0 16px;
+         background: var(--bar); border-bottom: 1px solid var(--line); z-index: 2; }
+  .bar a { color: var(--muted); text-decoration: none; font-size: 13px; white-space: nowrap; padding: 10px 0; }
+  .bar a:hover { color: var(--text); }
+  .bar a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .bar h1 { margin: 0; font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bar h1 small { color: var(--muted); font-weight: 400; margin-left: 8px; }
+  #view { position: fixed; left: 0; right: 0; top: 52px; bottom: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  /* the 3D page has a fixed stage (1257 x 835, or 720 x 1280 upright): it is scaled to fit the window */
+  #frame { border: 0; flex: none; transform-origin: 50% 50%; background: #0b0d16; }
+  .msg { color: var(--muted); padding: 24px; text-align: center; }
+  @media (max-width: 520px) { .bar h1 small { display: none; } }
+</style>
+</head>
+<body>
+<div class="bar">
+  <a href="./" id="back">← Tous les matchs</a>
+  <h1 id="title"></h1>
+</div>
+<div id="view"></div>
+<script>
+  const slug = new URLSearchParams(location.search).get('match') || '';
+  const view = document.getElementById('view');
+  if (!/^[A-Za-z0-9_-]+$/.test(slug)) {
+    view.innerHTML = '<p class="msg">Aucun match choisi. <a href="./" style="color:inherit">Voir la liste</a></p>';
+  } else {
+    // a screen taller than wide (phone held upright) gets the 9:16 layout of the 3D page, else the wide one;
+    // turning the phone reloads the 3D in the other layout
+    const SIZES = { portrait: [720, 1280], wide: [1257, 835] };
+    let frame = null, layout = null;
+    const wanted = () => (view.clientHeight > view.clientWidth ? 'portrait' : 'wide');
+    const fit = () => {
+      const [w, h] = SIZES[layout];
+      frame.style.transform = `scale(${Math.min(view.clientWidth / w, view.clientHeight / h)})`;
+    };
+    const build = () => {
+      layout = wanted();
+      const [w, h] = SIZES[layout];
+      if (frame) frame.remove();
+      frame = document.createElement('iframe');
+      frame.id = 'frame';
+      frame.title = 'Portrait 3D du match';
+      frame.style.width = w + 'px';
+      frame.style.height = h + 'px';
+      frame.src = 'fabric/index.html?match=' + encodeURIComponent(slug) + (layout === 'portrait' ? '&layout=portrait' : '');
+      frame.allow = 'fullscreen';
+      view.appendChild(frame);
+      fit();
+    };
+    addEventListener('resize', () => (wanted() !== layout ? build() : fit()));
+    build();
+    fetch('matches.json', { cache: 'no-cache' }).then((r) => r.json()).then((list) => {
+      const m = list.find((x) => x.slug === slug);
+      if (!m) return;
+      // back to the list on this match's season, competition and matchday
+      document.getElementById('back').href = './?' + new URLSearchParams({ saison: m.season.replace('/', '-'), competition: m.competition, journee: m.round ?? '' });
+      const t = `${m.home} ${m.score} ${m.away}`;
+      document.getElementById('title').innerHTML = '';
+      document.getElementById('title').append(t);
+      const small = document.createElement('small');
+      small.textContent = `${m.competition} · ${new Date(m.date + 'T12:00:00Z').toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}`;
+      document.getElementById('title').append(small);
+      document.title = `${t} · Match en 3D`;
+    }).catch(() => {});
+  }
+</script>
+</body>
+</html>

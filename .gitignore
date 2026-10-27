@@ -1,0 +1,31 @@
+# data and generated files (on the server only)
+data/
+output/
+out/
+dist/
+fabric/data/
+fabric/data.js
+assets/media/
+downloaded_files/
+reference/
+feedback/
+# environments and caches
+.venv/
+tools/node_modules/
+node_modules/
+__pycache__/
+*.pyc
+foot_dbt/target/
+foot_dbt/dbt_packages/
+foot_dbt/logs/
+logs/
+*.log
+.DS_Store
+# secrets (never committed)
+*.json.key
+.env
+.motherduck_token
+# dbt and test leftovers
+foot_dbt/
+.user.yml
+package-lock.yml

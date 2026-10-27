@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>match fabric</title>
+<link rel="stylesheet" href="../assets/fonts/fonts.css?v=20261017c">
+<style>
+  html, body { margin:0; background:#000; overflow:hidden; }
+  /* no text caret / selection anywhere (a click on the bar showed a blinking caret, e.g. with caret browsing on) */
+  html, body, #stage, #stage * { caret-color:transparent; -webkit-user-select:none; user-select:none; outline:none; }
+  #stage { position:relative; width:1257px; height:835px; overflow:hidden; background:#0b0d16; font-family:var(--font-mono); color:#fff; }
+  #sky, #gl, #ui, #pulse, #fx { position:absolute; left:0; top:0; width:100%; height:100%; }
+  #gl { z-index:2; } #sky { z-index:1; } #pulse { z-index:3; pointer-events:none; } #fx { z-index:4; pointer-events:none; } #ui { z-index:5; pointer-events:none; }
+  .mono { font-family:var(--font-mono); letter-spacing:0.18em; text-transform:uppercase; font-size:11px; color:#aeb3c4; }
+  #gallery { position:absolute; left:30px; top:27px; font-size:11px; letter-spacing:0.22em; color:#8b90a3; }
+  #howto { position:absolute; right:118px; top:28px; font-size:13px; letter-spacing:0.02em; color:#9ca1b4; text-decoration:underline; text-underline-offset:4px; font-family:var(--font-text); text-transform:none; pointer-events:auto; cursor:pointer; z-index:7; }
+  #howto:hover { color:#fff; }
+  /* "Comment lire" overlay (js/howto.js) */
+  #howtoLayer { position:absolute; inset:0; z-index:8; display:none; background:radial-gradient(ellipse at 50% 50%, rgba(4,5,10,0.12) 30%, rgba(4,5,10,0.55) 100%); font-family:var(--font-text); color:#f2f3f7; }
+  #howtoLayer.on { display:block; }
+  #howtoLayer .hw-img { position:absolute; left:0; top:0; width:100%; height:100%; display:block; }
+  #howtoLayer[data-view="image"] { background:#000; }
+  #howtoLayer svg { position:absolute; left:0; top:0; pointer-events:none; }
+  #howtoLayer polyline { fill:none; stroke:rgba(255,255,255,0.85); stroke-width:1.1; } #howtoLayer circle { fill:#fff; }
+  .hw-note { position:absolute; width:290px; font-size:14px; line-height:1.45; color:#f2f3f7; text-shadow:0 1px 3px rgba(0,0,0,0.9), 0 0 12px rgba(0,0,0,0.7); }
+  .hw-caption { position:absolute; left:40px; bottom:52px; font-size:12px; color:#c9ccd8; letter-spacing:0.02em; text-shadow:0 1px 3px rgba(0,0,0,0.9); }
+  .hw-note b { font-weight:600; color:#fff; }
+  .hw-legend { position:absolute; max-width:560px; font-size:13px; line-height:1.4; color:#e6e8ef; text-shadow:0 1px 3px rgba(0,0,0,0.9); }
+  .hw-legend b { font-size:16px; font-weight:600; color:#fff; margin-right:4px; }
+  .hw-keys { display:flex; flex-direction:column; gap:3px; margin-top:7px; font-size:13px; }   /* one key per line */
+  .hw-keys span { display:flex; align-items:center; gap:7px; } .hw-keys i { font-style:normal; display:inline-block; }
+  .k-y, .k-r { display:inline-block; width:8px; height:11px; border-radius:2px; vertical-align:-1px; } .k-y { background:#f2c230; } .k-r { background:#e5383b; }
+  .hw-bar { position:absolute; right:40px; top:22px; display:flex; gap:22px; align-items:center; font-size:13px; }
+  .hw-title { color:#fff; padding-bottom:4px; border-bottom:1px solid #fff; }
+  .hw-sources { position:absolute; width:290px; font-size:11.5px; line-height:1.45; color:#c9ccd8; text-shadow:0 1px 3px rgba(0,0,0,0.9); } .hw-sources b { color:#fff; font-weight:600; }
+  .hw-close { cursor:pointer; color:#c9ccd8; font-size:16px; padding:2px 6px; } .hw-close:hover { color:#fff; }
+  .team { position:absolute; top:50px; width:130px; }
+  #home { left:173px; } #away { left:302px; }
+  /* team: big club logo, the name under it (two lines at most), then the colour bar and the score */
+  .team { text-align:center; }
+  .team .name { display:flex; flex-direction:column; align-items:center; gap:7px; font-size:12px; letter-spacing:0.12em; color:#fff; font-family:var(--font-num); font-weight:900; }
+  .team .name { height:136px; }
+  .team .name .tn { text-transform:uppercase; max-width:118px; line-height:1.25; overflow:hidden; max-height:30px; }   /* team_name from match_info.csv, full, on up to two lines */
+  .team .name .tn.long { font-size:11px; letter-spacing:0.06em; }
+  .team .name .logo, .team .name .flag { flex:none; }
+  .flag { width:96px; height:96px; border-radius:14px; display:inline-block; }
+  .logo { width:100px; height:100px; object-fit:contain; display:inline-block; }
+  /* team colours: --home / --away (+ readable text colour --*-ink) are set by js/ui.js from the match data (match_info.csv) */
+  .team .bar { margin:9px auto 0; height:4px; width:90px; border-radius:2px; }
+  #home .bar { background:var(--home, #1e46f0); } #away .bar { background:var(--away, #d9dbe3); }
+  .team .score { font-family:var(--font-num); font-weight:900; font-size:84px; line-height:1; margin-top:10px; text-align:center; letter-spacing:-0.02em; }
+  .team .goals { margin-top:18px; text-align:left; }
+  .team .goals div { display:flex; align-items:center; gap:10px; font-size:14px; letter-spacing:0.08em; color:#d6d8e0; height:35px; margin-top:-1px; }
+  .team .goals i { width:14px; height:14px; border-radius:50%; background:var(--away, #e6e6ea); display:inline-block; }
+  #home .goals i { background:var(--home, #2b56f5); }
+  .team .goals .sc { font-family:var(--font-text); font-size:12px; letter-spacing:0; color:#aeb3c4; margin-left:-2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:70px; }   /* scorer next to the minute */
+  #clock { position:absolute; right:112px; top:94px; text-align:right; }
+  #clock .min { font-family:var(--font-num); font-weight:900; font-size:46px; line-height:1; color:#f2f2f5; letter-spacing:-0.02em; }
+  #clock .min sup { font-size:16px; vertical-align:top; position:relative; top:-6px; margin-left:3px; font-weight:400; }
+  #clock .half { margin-top:12px; font-size:10px; letter-spacing:0.28em; color:#8a8fa5; margin-right:4px; }
+  #play { position:absolute; left:174px; top:682px; width:56px; height:56px; border-radius:50%; background:#fff; display:flex; align-items:center; justify-content:center; }
+  #play:before { content:''; width:4px; height:14px; border-left:4px solid #111; border-right:4px solid #111; box-sizing:content-box; width:4px; }
+  #play { pointer-events:auto; cursor:pointer; }
+  #play.paused:before { width:0; height:0; border-top:9px solid transparent; border-bottom:9px solid transparent; border-left:15px solid #111; border-right:0; margin-left:4px; }
+  .card { position:absolute; width:186px; min-height:150px; border-radius:14px; background:linear-gradient(160deg, rgba(40,42,54,0.78), rgba(14,15,21,0.86)); border:1px solid rgba(255,255,255,0.10); backdrop-filter:blur(14px) saturate(140%); -webkit-backdrop-filter:blur(14px) saturate(140%); box-shadow:0 10px 30px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.08); opacity:0; transform:translate(-50%,-50%); padding:9px; box-sizing:border-box; }
+  .card .photo { width:168px; height:100px; border-radius:9px; background:#2a2d3a center/cover no-repeat; }
+  .card .row { display:flex; align-items:center; gap:7px; margin-top:9px; }
+  .card .num { font-family:var(--font-num); font-weight:900; font-size:11px; padding:1px 5px; border-radius:4px; min-width:14px; text-align:center; }
+  .card.home .num { background:var(--home, #2456f0); color:var(--home-ink, #fff); } .card.away .num { background:var(--away, #e8e8ec); color:var(--away-ink, #1a1a20); }
+  .card .nm { font-family:var(--font-text); font-weight:700; font-size:13.5px; line-height:1.2; color:#fff; letter-spacing:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:168px; }
+  .card .sub { margin-top:3px; font-size:10.5px; letter-spacing:0.01em; line-height:1.35; color:#c9ccd8; }   /* body part · xG · kind of goal */
+  .card .age { margin-top:2px; font-size:10.5px; color:#aeb3c4; }
+  .card .sub .xg { color:#aeb3c4; }
+  .tip { position:absolute; transform:translate(-50%,-100%); background:rgba(28,30,40,0.8); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); border:1px solid rgba(255,255,255,0.08); color:#c9ccd8; font-family:var(--font-text); font-size:11px; padding:5px 10px; border-radius:6px; white-space:nowrap; opacity:0; }
+  #flash { position:absolute; inset:0; z-index:3; pointer-events:none; opacity:0; background:radial-gradient(ellipse at 50% 55%, rgba(255,250,240,0.9), rgba(255,255,255,0.25) 60%, rgba(255,255,255,0) 85%); }
+  .tip.shot { white-space:normal; text-align:left; line-height:1.35; padding:7px 11px; font-size:11px; color:#c9ccd8; }
+  .tip.shot b { color:#fff; font-weight:600; font-size:12px; } .tip.shot .ctx { color:#8e93a6; }
+  .tip.foul { font-family:var(--font-mono); font-size:10px; letter-spacing:0.12em; color:#e8e9ef; padding:5px 9px; }
+  .tip.foul b { color:#fff; font-weight:700; letter-spacing:0.22em; } .tip.foul span { color:#8e93a6; margin-left:4px; }
+  #stats { position:absolute; left:733px; top:425px; width:380px; opacity:0; transform:translateY(20px); }
+  #stats .row { position:relative; height:51px; }
+  #stats .lab { position:absolute; left:0; right:0; top:4px; text-align:center; font-size:9.5px; letter-spacing:0.26em; color:#aab0c2; }
+  #stats .v { position:absolute; top:0; font-family:var(--font-num); font-weight:900; font-size:17px; color:#fff; }
+  #stats .v.l { left:0; } #stats .v.r { right:0; }
+  #stats .track { position:absolute; left:0; right:0; top:28px; height:5px; border-radius:3px; background:var(--away, #d9dbe3); overflow:hidden; }
+  #stats .fill { height:100%; background:var(--home, #1e46f0); border-radius:3px; }
+  /* turning the map by hand (js/main.js): grab cursor on the 3D, and a hint that becomes a "back to the default view" button */
+  #gl { cursor:grab; touch-action:none; } #gl.drag { cursor:grabbing; }
+  #viewbtn { position:absolute; right:118px; top:54px; font-family:var(--font-text); font-size:11px; color:#7e8397; letter-spacing:0.02em; pointer-events:none; z-index:7; }
+  #viewbtn.on { color:#c9ccd8; text-decoration:underline; text-underline-offset:4px; pointer-events:auto; cursor:pointer; }
+  #viewbtn.on:hover { color:#fff; }
+  .portrait #viewbtn { right:36px; top:60px; }
+  /* ?layout=portrait (js/config.js): 720 x 1280 stage for phones; scoreboard and clock on top, the pitch in the middle,
+     the momentum bar (PULSE_Y = 1140) at the bottom */
+  .portrait #stage { width:720px; height:1280px; }
+  .portrait #gallery { display:none; }
+  .portrait #howto { right:36px; top:34px; }
+  .portrait .team { top:44px; width:124px; }
+  .portrait #home { left:28px; } .portrait #away { left:156px; }
+  .portrait .team .name { height:112px; gap:6px; }
+  .portrait .logo { width:72px; height:72px; } .portrait .flag { width:68px; height:68px; }
+  .portrait .team .score { font-size:68px; margin-top:6px; }
+  .portrait .team .goals { margin-top:10px; }
+  .portrait .team .goals div { height:26px; font-size:13px; }
+  .portrait #clock { right:36px; top:96px; }
+  .portrait #clock .min { font-size:54px; }
+  .portrait #play { left:22px; top:1112px; }
+  .portrait #stats { left:170px; top:560px; }
+  .portrait #howtoLayer .hw-img { object-fit:contain; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="sky" width="1257" height="835"></canvas>
+  <canvas id="gl"></canvas>
+  <canvas id="pulse" width="1257" height="835"></canvas>
+  <div id="flash"></div>
+  <canvas id="fx" width="1257" height="835"></canvas>
+  <div id="ui">
+    <div id="gallery" class="mono">‹&nbsp;&nbsp;GALERIE</div>
+    <div id="howto">Comment lire</div>
+    <div class="team" id="home"><div class="name"><span class="flag"></span></div><div class="bar"></div><div class="score">0</div><div class="goals"></div></div>
+    <div class="team" id="away"><div class="name"><span class="flag"></span></div><div class="bar"></div><div class="score">0</div><div class="goals"></div></div>
+    <div id="clock"><div class="min">1<sup>'</sup></div><div class="half">1ST HALF</div></div>
+    <div id="play"></div>
+    <div id="cards"></div>
+    <div id="tips"></div>
+    <div id="stats"></div>
+  </div>
+</div>
+<script>
+  // which match: ?match=<name> loads fabric/data/<name>.js (written by tools/build_data.py), else data.js (the last built)
+  (function () { const m = new URLSearchParams(location.search).get('match');
+    const src = m && /^[A-Za-z0-9_-]+$/.test(m) ? 'data/' + m + '.js' : 'data.js';
+    document.write('<script src="' + src + '?v=' + Date.now() + '"><\/script>'); })();
+</script>
+<script src="camera.js?v=20261017c"></script>
+<script type="module" src="js/main.js?v=20261019r"></script>
+</body>
+</html>
