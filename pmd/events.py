@@ -69,7 +69,7 @@ def build_events(result, data, workdir, xt_grid_source=XT_GRID_DASHBOARD_URL):
     columns_to_drop = ['id', 'eventId', 'minute', 'second', 'teamId', 'x', 'y', 'expandedMinute', 'period', 'type', 'outcomeType', 'qualifiers',
                        'satisfiedEventsTypes', 'isTouch', 'playerId', 'endX', 'endY', 'relatedEventId', 'relatedPlayerId', 'blockedX', 'blockedY',
                        'goalMouthZ', 'goalMouthY', 'isShot']
-    dfxT.drop(columns=columns_to_drop, inplace=True)
+    dfxT.drop(columns=columns_to_drop, inplace=True, errors='ignore')   # a feed without any shot or related event has none of their columns
 
     df = df.merge(dfxT, on='Unnamed: 0', how='left')
     # Creating another column for teamName
