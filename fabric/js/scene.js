@@ -162,7 +162,7 @@ const boLines = (() => { // full, unclipped pitch markings shown on the flat bla
 { // ground outline (rest position)
   const g = new THREE.BufferGeometry(); const y = -P.THICK - 0.1;
   g.setAttribute('position', new THREE.BufferAttribute(new Float32Array([-52.5, y, -34, 52.5, y, -34, 52.5, y, 34, -52.5, y, 34, -52.5, y, -34]), 3));
-  scene.add(new THREE.Line(g, new THREE.LineBasicMaterial({ color: 0xc8ccd8, transparent: true, opacity: 0.55 })));
+  scene.add(new THREE.Line(g, new THREE.LineBasicMaterial({ color: document.documentElement.classList.contains('light') ? 0x6f6a62 : 0xc8ccd8, transparent: true, opacity: 0.55 })));
 }
 
 export { renderer, scene, camera, placeCamera, userView, setUserView, lightFor, TC, rgbaT, inkOn, cloths, BLUE, WHITE, lineSegs, boLines };

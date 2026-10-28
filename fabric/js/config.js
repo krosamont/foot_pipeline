@@ -10,6 +10,9 @@ if (PORTRAIT) {
   for (const id of ['sky', 'pulse', 'fx']) { const c = document.getElementById(id); if (c) { c.width = W; c.height = H; } }
 }
 const RENDER_MODE = /render=1/.test(location.search);
+// ?theme=light: the light version of data-workers.com (beige paper, ink); see .light in index.html
+const LIGHT_THEME = /theme=light/.test(location.search);
+if (LIGHT_THEME) document.documentElement.classList.add('light');
 
 // ------------------------------------------------------------------ tunables
 const P = {
@@ -31,4 +34,4 @@ const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const sm = (x) => { x = clamp(x, 0, 1); return x * x * (3 - 2 * x); };
 const NX = 211, NY = 137, DX = 0.5, NL = 35;
 
-export { M, CAM, W, H, PORTRAIT, RENDER_MODE, P, lp, clamp, sm, NX, NY, DX, NL };
+export { M, CAM, W, H, PORTRAIT, RENDER_MODE, LIGHT_THEME, P, lp, clamp, sm, NX, NY, DX, NL };

@@ -1,5 +1,5 @@
 // Momentum bar: curve, goals, substitutions and cards, cursor.
-import { M, W, H, PORTRAIT, clamp, P } from './config.js';
+import { M, W, H, PORTRAIT, LIGHT_THEME, clamp, P } from './config.js';
 import { BREAKS, MAX_MIN, dispMinute, chartMinute, stops, CARDS } from './timeline.js';
 import { TC, rgbaT, inkOn } from './scene.js';
 import { state, momSeries, momentumAt } from './engine.js';
@@ -11,20 +11,24 @@ const pulseCtx = document.getElementById('pulse').getContext('2d');
 // the chart keeps its width: 90 or 120 minutes (portrait: from the play button to the right edge)
 const CH = PORTRAIT ? { x0: 96, pxm: (W - 96 - 40) / MAX_MIN, y: P.PULSE_Y, amp: 0.5 } : { x0: 251, pxm: 9.08 * 90 / MAX_MIN, y: P.PULSE_Y, amp: 0.5 };
 const cx = (m) => CH.x0 + CH.pxm * Math.min(m, MAX_MIN);
+// lines, names and their backing: white on the night sky, ink on the beige paper (?theme=light)
+const LN = LIGHT_THEME ? '29,27,25' : '255,255,255';
+const INK = LIGHT_THEME ? { name: '#1d1b19', off: '#6f6a62', on: '#2f8f4e', out: '#c2393f', back: 'rgba(246,243,236,0.88)', dot: '#1d1b19' }
+  : { name: '#e4e6ee', off: '#9ea3b5', on: '#5fd68a', out: '#ff6b6b', back: 'rgba(14,16,24,0.72)', dot: '#fff' };
 function drawPulse(T, t) {
   const ctx = pulseCtx; ctx.clearRect(0, 0, W, H); const cm = chartMinute(T);
-  for (const br of BREAKS) if (cm >= br.nom) { ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(cx(br.nom) + 0.5, CH.y - 52); ctx.lineTo(cx(br.nom) + 0.5, CH.y + 56); ctx.stroke(); }   // a line at each period start
+  for (const br of BREAKS) if (cm >= br.nom) { ctx.strokeStyle = `rgba(${LN},0.35)`; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(cx(br.nom) + 0.5, CH.y - 52); ctx.lineTo(cx(br.nom) + 0.5, CH.y + 56); ctx.stroke(); }   // a line at each period start
   const pts = []; for (const [m, v] of momSeries) { if (m > cm) break; pts.push([cx(m), CH.y - v * CH.amp]); }
   pts.push([cx(cm), CH.y - momentumAt(cm) * CH.amp]);
   if (pts.length > 1) {
     const fill = (sign, color) => { ctx.save(); ctx.beginPath(); ctx.rect(0, sign > 0 ? 0 : CH.y, W, sign > 0 ? CH.y : H - CH.y); ctx.clip();
       ctx.beginPath(); ctx.moveTo(pts[0][0], CH.y); for (const p of pts) ctx.lineTo(p[0], p[1]); ctx.lineTo(pts[pts.length - 1][0], CH.y); ctx.closePath(); ctx.fillStyle = color; ctx.fill(); ctx.restore(); };
     fill(1, rgbaT('home', 0.9)); fill(-1, rgbaT('away', 0.62));
-    ctx.beginPath(); for (const p of pts) ctx.lineTo(p[0], p[1]); ctx.strokeStyle = 'rgba(255,255,255,0.95)'; ctx.lineWidth = 1.6; ctx.lineJoin = 'round'; ctx.stroke();
+    ctx.beginPath(); for (const p of pts) ctx.lineTo(p[0], p[1]); ctx.strokeStyle = `rgba(${LN},0.95)`; ctx.lineWidth = 1.6; ctx.lineJoin = 'round'; ctx.stroke();
   }
-  ctx.beginPath(); ctx.moveTo(CH.x0, CH.y + 0.5); ctx.lineTo(cx(cm), CH.y + 0.5); ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = 1; ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(CH.x0, CH.y + 0.5); ctx.lineTo(cx(cm), CH.y + 0.5); ctx.strokeStyle = `rgba(${LN},0.5)`; ctx.lineWidth = 1; ctx.stroke();
   // cursor line first, so markers and names are drawn over it
-  { const xc = cx(cm); ctx.strokeStyle = 'rgba(255,255,255,0.55)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(xc + 0.5, CH.y - 55); ctx.lineTo(xc + 0.5, CH.y + 55); ctx.stroke(); }
+  { const xc = cx(cm); ctx.strokeStyle = `rgba(${LN},0.55)`; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(xc + 0.5, CH.y - 55); ctx.lineTo(xc + 0.5, CH.y + 55); ctx.stroke(); }
   // markers
   const dotted = (x, y0, y1, color) => { ctx.save(); ctx.setLineDash([1.5, 3]); ctx.strokeStyle = color; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(x + 0.5, y0); ctx.lineTo(x + 0.5, y1); ctx.stroke(); ctx.restore(); };
   const ball = (x, y, color) => { ctx.save(); ctx.fillStyle = color; ctx.strokeStyle = color; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI * 2); ctx.stroke();
@@ -53,16 +57,16 @@ function drawPulse(T, t) {
       ctx.globalAlpha = Math.min(1, fresh * 3) * 0.95; ctx.font = `500 10px ${FONT_TEXT}`; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
       // substitution: "↑ in  ↓ out" (green arrow for the player coming on, red for the one going off)
       const offShort = e.kind === 'sub' && e.off ? String(e.off).split(' ').slice(-1)[0] : '';
-      const parts = e.kind === 'sub' ? [['↑ ', '#5fd68a'], [short, '#e4e6ee'], ...(offShort ? [['  ↓ ', '#ff6b6b'], [offShort, '#9ea3b5']] : [])] : [[short, '#e4e6ee']];
+      const parts = e.kind === 'sub' ? [['↑ ', INK.on], [short, INK.name], ...(offShort ? [['  ↓ ', INK.out], [offShort, INK.off]] : [])] : [[short, INK.name]];
       const tw = parts.reduce((a, [txt]) => a + ctx.measureText(txt).width, 0);
-      ctx.fillStyle = 'rgba(14,16,24,0.72)'; ctx.beginPath(); ctx.roundRect(x + 8, y - 7, tw + 8, 14, 3); ctx.fill();   // backing: lines behind never cross the names
+      ctx.fillStyle = INK.back; ctx.beginPath(); ctx.roundRect(x + 8, y - 7, tw + 8, 14, 3); ctx.fill();   // backing: lines behind never cross the names
       let px = x + 12; for (const [txt, col] of parts) { ctx.fillStyle = col; ctx.fillText(txt, px, y); px += ctx.measureText(txt).width; } }
     ctx.restore(); }
   const x = cx(cm);
   // the cursor dot carries the colour of the side currently pushing on the 3D map (same signal that drives the front)
   const push = clamp((state.dom || 0) * 6, -1, 1); const dc = push >= 0 ? TC.home : TC.away; const k = Math.abs(push);
   ctx.save(); ctx.shadowColor = `rgba(${dc},${0.8 * k})`; ctx.shadowBlur = 10 * k; ctx.fillStyle = `rgb(${dc.map(v => Math.round(255 + (v - 255) * k))})`;
-  ctx.beginPath(); ctx.arc(x, CH.y, 4.5 + 1.5 * k, 0, Math.PI * 2); ctx.fill(); ctx.lineWidth = 1.2; ctx.strokeStyle = '#fff'; ctx.stroke(); ctx.restore();
+  ctx.beginPath(); ctx.arc(x, CH.y, 4.5 + 1.5 * k, 0, Math.PI * 2); ctx.fill(); ctx.lineWidth = 1.2; ctx.strokeStyle = INK.dot; ctx.stroke(); ctx.restore();
 }
 
 export { CH, cx, drawPulse };

@@ -27,7 +27,9 @@ import pandas as pd  # noqa: E402
 from pmd.slug import match_slug  # noqa: E402
 
 STATIC = ['fabric/index.html', 'fabric/camera.js', 'fabric/js', 'fabric/lib', 'assets/fonts', 'assets/howto']
-PAGES = ['web/index.html', 'web/match.html', 'web/.htaccess']   # copied to the root of the site
+# copied to the root of the site; web/clair/: their light versions (beige theme of data-workers.com/clair/), which open
+# the 3D page with ?theme=light
+PAGES = ['web/index.html', 'web/match.html', 'web/.htaccess', 'web/clair/index.html', 'web/clair/match.html']
 MEDIA = re.compile(r'\.\./(assets/media/[^"\']+)')
 ALL_LIST = os.path.join(ROOT, 'data', 'matches', 'matches_all.json')   # every match ever published, all seasons
 
@@ -108,7 +110,7 @@ def main(argv=None):
     for rel in STATIC:
         copy(os.path.join(ROOT, rel), os.path.join(a.out, rel))
     for page in PAGES:
-        copy(os.path.join(ROOT, page), os.path.join(a.out, os.path.basename(page)))
+        copy(os.path.join(ROOT, page), os.path.join(a.out, os.path.relpath(page, 'web')))
 
     # every published match is remembered in ALL_LIST; the site's matches.json only lists the latest season
     # (the 3D pages of earlier seasons stay on the server)

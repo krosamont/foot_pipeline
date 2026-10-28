@@ -1,5 +1,5 @@
 // Background sky: colour of the dominant team, goal / penalty / full-time moods.
-import { W, H, P, clamp, sm } from './config.js';
+import { W, H, P, LIGHT_THEME, clamp, sm } from './config.js';
 import { TC } from './scene.js';
 import { state } from './engine.js';
 import { territory } from './relief.js';
@@ -9,7 +9,20 @@ const skyCtx = document.getElementById('sky').getContext('2d');
 const mix3 = (a, b, k) => [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k, a[2] + (b[2] - a[2]) * k];
 const rgb = (c, a = 1) => `rgba(${c[0] | 0},${c[1] | 0},${c[2] | 0},${a})`;
 const CALM = { c0: [178, 180, 192], c1: [84, 88, 110], c2: [14, 16, 24], warm: 0, navy: 0 };
+const PAPER = [235, 231, 222];
+function skyTargetLight(t) {
+  const s = { c0: [252, 250, 245], c1: [228, 223, 212], c2: PAPER, warm: 0, navy: 0 };
+  { const tc = TC[(state.dom || 0) > 0 ? 'home' : 'away'], k = Math.sqrt(clamp(Math.abs(state.dom || 0) / P.SKY_DOM_FULL, 0, 1));
+    s.c0 = mix3(s.c0, mix3(tc, [255, 255, 255], 0.8), k * 0.6); s.c1 = mix3(s.c1, mix3(tc, PAPER, 0.55), k * 0.7); }
+  const intro = sm(t / 5); s.c0 = mix3(PAPER, s.c0, intro); s.c1 = mix3(PAPER, s.c1, intro);
+  const st = state.stop, ph = state.stopPhase;
+  if (st && ph >= st.sched.flood - 0.2 && ph < (st.pen ? 3.6 : st.sched.unflood + 0.3) && st.goal.team === 'away') s.c1 = mix3(s.c1, [196, 200, 220], st.pen ? 0.8 : 0.2);
+  if (state.bo > 0.01) { s.c0 = mix3(s.c0, [214, 210, 202], state.bo); s.c1 = mix3(s.c1, [190, 186, 178], state.bo); }
+  if (state.ft > 0.01) { s.c0 = mix3(s.c0, [240, 237, 230], state.ft); s.c1 = mix3(s.c1, [222, 218, 210], state.ft); }
+  return s;
+}
 function skyTarget(t) {
+  if (LIGHT_THEME) return skyTargetLight(t);
   let s = { ...CALM };
   const lean = clamp((state.dom || 0) * 2.5, -1, 1); // sky leans toward the dominant force: + home, - away
   // the wider the gap (territory + momentum), the more the whole background takes the dominant team's colour
