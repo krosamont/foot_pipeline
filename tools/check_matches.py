@@ -5,7 +5,8 @@ is more than --after-hours ago (default 6: the 4 h before it is fetched + 2 h fo
   1. it has a WhoScored id (data/fixtures/whoscored_fixtures.csv, whoscored_schedule_*, whoscored_links_*);
   2. it was fetched (data/matches/<competition>_<season>/<id>_.../ with its exports);
   3. it is on the website (matches.json of ~/data-workers.com/projet/foot_3d/);
-  4. it is in the four Parquet files sent to Google Cloud (data/gcp/match_df.parquet, and that file was sent).
+  4. it is in MotherDuck: in the sources (md:foot, raw.match_status) and in gold (gold.fct_team_match, so the dbt build
+     after its load went through).
 When something is missing, an e-mail goes to --to (sendmail); the same list is sent again only after 20 h (so once per evening run), and a short
 "back to normal" e-mail follows when everything is there again (state in data/matches/alert_state.json).
 
@@ -36,7 +37,6 @@ from pmd.fixtures import LEAGUES  # noqa: E402
 FIXTURES = os.path.join(ROOT, 'data', 'fixtures')
 MATCHES = os.path.join(ROOT, 'data', 'matches')
 SITE = os.path.expanduser('~/data-workers.com/projet/foot_3d/matches.json')
-GCP = os.path.join(ROOT, 'data', 'gcp')
 STATE = os.path.join(MATCHES, 'alert_state.json')
 TO = 'krosamont@data-workers.com'
 FROM = 'foot_3d <noreply@data-workers.com>'
@@ -59,9 +59,7 @@ def report(season, after_hours):
     fetched = {int(os.path.basename(os.path.normpath(d)).split('_', 1)[0]) for d in glob.glob(os.path.join(MATCHES, '*', '*', ''))
                if glob.glob(os.path.join(d, '*_qualifiers_expanded.csv'))}
     site = {m.get('match_id') for m in json.load(open(SITE))} if os.path.exists(SITE) else set()
-    gcp_file = os.path.join(GCP, 'match_df.parquet')
-    in_gcp = set(pd.read_parquet(gcp_file, columns=['match_id'])['match_id'].astype(int)) if os.path.exists(gcp_file) else set()
-    sent = json.load(open(os.path.join(GCP, 'uploaded.json'))) if os.path.exists(os.path.join(GCP, 'uploaded.json')) else {}
+    in_raw, in_gold, md_error = motherduck(season)
     failed_path = os.path.join(MATCHES, 'failed.csv')
     last_error = pd.read_csv(failed_path).drop_duplicates('whoscored_match_id', keep='last').set_index('whoscored_match_id')['error'] \
         if os.path.exists(failed_path) else pd.Series(dtype=str)
@@ -87,21 +85,28 @@ def report(season, after_hours):
                 problems.append(f'{what} : pas récupéré' + (f' (dernière erreur : {str(err)[:120]})' if isinstance(err, str) else ''))
             elif ws not in site:
                 problems.append(f'{what} : récupéré mais pas publié sur le site')
-            elif ws not in in_gcp:
-                problems.append(f'{what} : absent des fichiers Google Cloud')
-    for t in ('match_df', 'player_df', 'event_df', 'metrics_df'):
-        p = os.path.join(GCP, t + '.parquet')
-        if os.path.exists(p) and sent.get(t) != _md5(p):
-            problems.append(f'Google Cloud : gs://foot-bucket/foot_3d/{t}.parquet n\'est pas à jour (dernier envoi échoué ?)')
+            elif md_error is None and ws not in in_raw:
+                problems.append(f'{what} : absent de MotherDuck (raw), voir data/matches/bronze.log')
+            elif md_error is None and ws not in in_gold:
+                problems.append(f'{what} : dans MotherDuck (raw) mais pas en gold, voir data/matches/dbt.log')
+    if md_error is not None:
+        problems.append(f'MotherDuck : lecture impossible ({md_error[:120]})')
     return played, problems
 
 
-def _md5(path):
-    h = hashlib.md5()
-    with open(path, 'rb') as f:
-        for chunk in iter(lambda: f.read(1 << 20), b''):
-            h.update(chunk)
-    return h.hexdigest()
+def motherduck(season):
+    """WhoScored ids of `season` in md:foot: sources (raw.match_status) and gold (gold.fct_team_match), and the error
+    if MotherDuck could not be read."""
+    try:
+        import duckdb
+        if not os.environ.get('motherduck_token'):
+            os.environ['motherduck_token'] = open(os.path.expanduser('~/.motherduck_token')).read().strip()
+        con = duckdb.connect('md:foot')
+        ids = lambda sql: {int(r[0]) for r in con.execute(sql, [season]).fetchall()}
+        return (ids('select distinct match_id from raw.match_status where season = ?'),
+                ids('select distinct match_id from gold.fct_team_match where season = ?'), None)
+    except Exception as e:   # noqa: BLE001  (reported in the e-mail rather than crashing the check)
+        return set(), set(), str(e)
 
 
 def send(subject, body, to):
@@ -133,14 +138,14 @@ def main(argv=None):
         if state.get('signature') != signature or not last or (now - last).total_seconds() > 20 * 3600:
             body = (f'Bonjour,\n\nLa vérification automatique de foot_3d ({now:%d/%m/%Y %H:%M} UTC) a trouvé {len(problems)} problème(s) '
                     f'sur les {played} matchs déjà joués de la saison {season} :\n\n' + '\n'.join(f'- {p}' for p in problems)
-                    + '\n\nJournaux sur le serveur : ~/data/foot_3d/data/matches/run.log, failed.csv et ~/data/foot_3d/data/gcp/export.log.\n'
+                    + '\n\nJournaux sur le serveur : ~/data/foot_3d/data/matches/run.log, failed.csv, bronze.log et dbt.log.\n'
                     'Ce contrôle passe le mardi, mercredi, samedi, dimanche et lundi à 23 h 30.\n')
             send(f'[foot_3d] {len(problems)} match(s) manquant(s) - saison {season}', body, a.to)
             state = {'signature': signature, 'sent_at': now.isoformat(), 'problems': len(problems)}
             print(f'[check] e-mail envoyé à {a.to}', flush=True)
     elif state.get('problems'):
         send(f'[foot_3d] tout est revenu en ordre - saison {season}',
-             f'Bonjour,\n\nLes {played} matchs déjà joués de la saison {season} sont maintenant tous récupérés, publiés et dans Google Cloud.\n', a.to)
+             f'Bonjour,\n\nLes {played} matchs déjà joués de la saison {season} sont maintenant tous récupérés, publiés et dans MotherDuck.\n', a.to)
         state = {'signature': None, 'sent_at': None, 'problems': 0}
         print(f'[check] e-mail "tout est revenu en ordre" envoyé à {a.to}', flush=True)
     with open(STATE, 'w') as f:

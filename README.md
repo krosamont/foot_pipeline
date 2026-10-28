@@ -7,12 +7,13 @@ Everything that runs on the o2switch server (`~/data/foot_3d`), up to the source
 | FotMob calendars of the current season | `pmd/fixtures.py` | every day at 9:05 |
 | Download and compute each match, 4 h after kick-off | `tools/run_missing.py` (pipeline `pmd/`) | every 15 min |
 | 3D portrait of the match on data-workers.com | `tools/publish_web.py`, `fabric/`, `web/` | after each match |
-| BigQuery `foot_new` | `tools/load_bigquery.py` | every 15 min |
 | MotherDuck sources (`md:foot`, schema `raw`), then dbt build of [foot_db](https://github.com/krosamont/foot_db) | `tools/to_bronze.py`, `tools/lake_update.sh` | every 15 min |
-| Check that every match played is everywhere (e-mail) | `tools/check_matches.py` | 23:30 |
+| Check that every match played is everywhere: fetched, on the site, in MotherDuck raw and gold (e-mail) | `tools/check_matches.py` | 23:30 |
+| Check that every match of each past season is there (rules per competition) | `tools/check_fixtures.py` | by hand |
 | Old project seasons 2020-2021 to 2024-2025 (Parquet) -> MotherDuck `md:foot`, schema `raw_legacy` | `tools/load_legacy.py` | once (2026-10-27) |
 
-The full crontab is in `deploy/crontab.txt`. Data, downloads, generated files and environments stay on the server
+No Google Cloud since 2026-10-28 (`run_missing.py --no-gcp`; the BigQuery and GCP cron jobs are commented out):
+everything is on the server and in MotherDuck. The full crontab is in `deploy/crontab.txt`. Data, downloads, generated files and environments stay on the server
 (`.gitignore`). The bronze / silver / gold models are in the separate repository foot_db.
 
 # Football match pipeline + 3D portrait
