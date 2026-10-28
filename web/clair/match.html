@@ -47,6 +47,15 @@ html, body { background: var(--c-paper); }
 /* the 3D page in its light theme (fabric/index.html?theme=light), on the same paper */
 #frame { background: var(--c-paper); }
 @media (max-width: 520px) { .bar .theme-switch { font-size: 12px; padding: 3px 8px; } }
+  /* the switch is fixed at the top right of the bar: the title stops before it */
+  .bar { padding-right: 160px; }
+  @media (max-width: 600px) { .bar { padding-right: 130px; } }
+</style>
+<style id="theme-switch">
+/* switch to the dark version: same place and look on every light page of data-workers.com (top right) */
+a.theme-switch { position: fixed !important; top: 14px !important; right: 14px !important; left: auto !important; bottom: auto !important; z-index: 1000 !important; margin: 0 !important; display: inline-flex !important; align-items: center; letter-spacing: 0 !important; text-transform: none !important; text-decoration: none !important; white-space: nowrap; padding: 8px 13px !important; box-shadow: none !important; transform: none !important; font: 13px/1 'Arvo', Rockwell, Georgia, serif !important; border: 1.5px solid #1d1b19 !important; border-radius: 2px !important; background: #ebe7de !important; color: #1d1b19 !important; }
+a.theme-switch:hover { background: #1d1b19 !important; color: #ebe7de !important; }
+@media (max-width: 600px) { a.theme-switch { top: 10px !important; right: 10px !important; padding: 7px 11px !important; font-size: 12px !important; } }
 </style>
 </head>
 <body>
