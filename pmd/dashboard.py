@@ -710,11 +710,13 @@ def render(ns, out_dir):
       hShotsdf = Shotsdf[Shotsdf['teamId']==hteamID].copy()
       aShotsdf = Shotsdf[Shotsdf['teamId']==ateamID].copy()
       # converting the datapoints according to the pitch dimension, because the goalposts are being plotted inside the pitch using pitch's dimension
-      hShotsdf['goalMouthZ'] = hShotsdf['goalMouthZ']*0.75
-      aShotsdf['goalMouthZ'] = (aShotsdf['goalMouthZ']*0.75) + 38
-
-      hShotsdf['goalMouthY'] = (37.66 - hShotsdf['goalMouthY'])*12.295
-      aShotsdf['goalMouthY'] = (37.66 - aShotsdf['goalMouthY'])*12.295
+      # goalMouthY / goalMouthZ come on the 0-100 scale of WhoScored, where the posts are at y 45.2 and 54.8 and the
+      # crossbar at z 38. In metres (goal 7.32 x 2.44): y = 34 + (y - 50) * 7.32 / 9.6 (posts at 30.34 and 37.66),
+      # z = z * 2.44 / 38. The goals are drawn 90 x 30, i.e. metres * 12.295 (7.32 * 12.295 = 90, 2.44 * 12.295 = 30).
+      for d in (hShotsdf, aShotsdf):
+          d['goalMouthY'] = (37.66 - (34 + (d['goalMouthY'] - 50) * 7.32 / 9.6)) * 12.295
+          d['goalMouthZ'] = d['goalMouthZ'] * 2.44 / 38 * 12.295
+      aShotsdf['goalMouthZ'] = aShotsdf['goalMouthZ'] + 38
 
       # plotting an invisible pitch using the pitch color and line color same color, because the goalposts are being plotted inside the pitch using pitch's dimension
       pitch = Pitch(pitch_type='uefa', goal_type='box', goal_alpha=.75, corner_arcs=True, pitch_color=bg_color, line_color=bg_color, linewidth=2)
