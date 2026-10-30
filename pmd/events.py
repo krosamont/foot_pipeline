@@ -76,7 +76,8 @@ def build_events(result, data, workdir, xt_grid_source=XT_GRID_DASHBOARD_URL):
     df['teamName'] = df['teamId'].map(teams_dict)
 
     # Reshaping the data from 100x100 to 105x68
-    # goalMouthY is already in the 0-68 pitch scale (goalposts at 30.34-37.66) — do NOT scale it
+    # goalMouthY (across the goal) and goalMouthZ (height) stay on 0-100 here: they are exported as they are
+    # (_qualifiers_expanded.csv, then foot_db silver puts both in metres). The GK map (dashboard.py) scales them.
     df['x'] = df['x']*1.05
     df['y'] = df['y']*0.68
     df['endX'] = df['endX']*1.05
