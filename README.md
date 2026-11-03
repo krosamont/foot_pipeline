@@ -1,5 +1,20 @@
 # foot_pipeline — the server side of the football project
 
+**Live: <https://data-workers.com/projet/foot_3d/>** (English: <https://data-workers.com/en/projet/foot_3d/>): every match of
+the Premier League, LaLiga, Serie A, Bundesliga, Ligue 1 and Champions League as a 3D landscape, updated after each match.
+
+## Reproducible example
+
+`tests/fixtures/France_vs_England/` holds the raw WhoScored and FotMob data of one match (France - England), so the
+whole pipeline runs without downloading anything:
+
+```bash
+./setup.sh                                  # or: pip install -r requirements.txt
+python -m pytest tests                      # runs the pipeline on the fixtures and checks every output file
+```
+
+The full match data (`data/`) and the published 3D files (`fabric/data/`) stay on the server (`.gitignore`).
+
 Everything that runs on the o2switch server (`~/data/foot_3d`), up to the sources of MotherDuck:
 
 | Step | Code | Cron |
