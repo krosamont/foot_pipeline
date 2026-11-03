@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% block contenu %}
+<style>
+.grille{display:grid;grid-template-columns:280px 1fr;gap:20px}
+@media (max-width:800px){.grille{grid-template-columns:1fr}}
+.schema{max-height:80vh;overflow:auto;font-size:13px;border-right:1px solid var(--trait);padding-right:10px}
+.schema details{margin:2px 0}.schema summary{cursor:pointer}
+.schema .t{font-family:ui-monospace,Menlo,monospace;cursor:pointer}.schema .t:hover{color:var(--rouge)}
+.schema .vue{color:var(--doux);font-size:11px}
+.schema ul{margin:2px 0 6px;padding-left:18px;color:var(--doux);font-family:ui-monospace,Menlo,monospace;font-size:12px}
+.actions{display:flex;gap:10px;align-items:center;margin:8px 0;flex-wrap:wrap}
+</style>
+<div class="grille">
+<aside class="schema">
+  <p class="info">Schémas — clic sur une table pour l'interroger. bronze, silver et gold sont des vues dbt ; raw, raw_legacy et comparaison_sport sont les tables chargées.</p>
+  {% for sch, tables in arbre.items() %}
+  <details {% if sch in ('gold',) %}open{% endif %}><summary><b>{{ sch }}</b> ({{ tables|length }})</summary>
+    {% for t, d in tables.items() %}
+    <details><summary><span class="t" data-q="select * from {{ sch }}.{{ t }} limit 100">{{ t }}</span> {% if d.type == 'vue' %}<span class="vue">vue</span>{% endif %}</summary>
+      <ul>{% for c, ty in d.colonnes %}<li>{{ c }} <span class="vue">{{ ty|lower }}</span></li>{% endfor %}</ul>
+    </details>
+    {% endfor %}
+  </details>
+  {% endfor %}
+</aside>
+<section>
+  <form method="post" id="f">
+    <input type="hidden" name="jeton" value="{{ jeton }}">
+    <textarea name="sql" id="sql" spellcheck="false">{{ sql }}</textarea>
+    <div class="actions">
+      <button>Exécuter <span class="info" style="color:inherit">(Ctrl+Entrée)</span></button>
+      <button class="second" formaction="{{ url_for('export_csv') }}">Exporter en CSV</button>
+      <span class="info">lecture seule · {{ max_lignes }} lignes affichées au plus · 60 s maximum</span>
+    </div>
+  </form>
+  {% if erreur %}<div class="erreur">{{ erreur }}</div>{% endif %}
+  {% if resultat %}{% set colonnes, lignes, tronque, duree = resultat %}
+  <p class="info">{{ lignes|length }} ligne(s){% if tronque %} — résultat tronqué, ajoutez un LIMIT ou exportez en CSV{% endif %} · {{ '%.2f'|format(duree) }} s</p>
+  <div class="table"><table><thead><tr>{% for c in colonnes %}<th>{{ c }}</th>{% endfor %}</tr></thead>
+  <tbody>{% for l in lignes %}<tr>{% for v in l %}{% if v is none %}<td class="null">null</td>{% else %}<td title="{{ v }}">{{ v }}</td>{% endif %}{% endfor %}</tr>{% endfor %}</tbody></table></div>
+  {% endif %}
+</section>
+</div>
+<script>
+const sql = document.getElementById('sql'), f = document.getElementById('f');
+sql.addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') f.submit(); });
+document.querySelectorAll('.schema .t').forEach(t => t.addEventListener('click', e => { e.preventDefault(); sql.value = t.dataset.q; f.submit(); }));
+</script>
+{% endblock %}

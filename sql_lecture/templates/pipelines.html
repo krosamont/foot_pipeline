@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+{% block contenu %}
+<style>.ok{color:#2e7d32}.echec{color:var(--rouge);font-weight:bold}.avertissement,.en_cours{color:#b26a00}td{vertical-align:top}</style>
+<p class="info">Dernières exécutions des pipelines (orchestration du dépôt foot_pipeline, cron du serveur).</p>
+<div class="table" style="max-height:none"><table>
+<thead><tr><th>#</th><th>pipeline</th><th>début</th><th>fin</th><th>statut</th><th>tâches</th></tr></thead>
+<tbody>{% for id, p, d, f, s in runs %}<tr><td>{{ id }}</td><td>{{ p }}</td><td>{{ d|replace('T',' ') }}</td><td>{{ (f or '')|replace('T',' ') }}</td><td class="{{ s }}">{{ s }}</td>
+<td>{% for t, st, n, td, tf in taches.get(id, []) %}<span class="{{ st }}">{{ t }} : {{ st }}{% if n > 1 %} ({{ n }} essais){% endif %}</span><br>{% endfor %}</td></tr>{% endfor %}</tbody>
+</table></div>
+{% endblock %}

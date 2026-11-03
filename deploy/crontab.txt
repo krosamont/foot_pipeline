@@ -21,6 +21,5 @@ SHELL="/bin/bash"
 # [arrete 2026-10-28 : plus de Google Cloud, tout est sur le serveur et MotherDuck] 8,23,38,53 * * * * cd /home/mjzg4129/data/foot_3d && flock -n data/matches/.run.lock .venv/bin/python -u tools/load_bigquery.py >> data/matches/bigquery.log 2>&1
 # foot_3d: MotherDuck md:foot : sources raw, puis dbt build de foot_db si des matchs ont ete charges ; une fois par jour a 23h30 (offre Free : 10 h de calcul par mois), en attendant au besoin run_missing (meme verrou, jusqu a 1 h)
 # puis le controle des matchs joues (recuperes, publies, dans MotherDuck raw et gold), mail si un manque : dimanche, lundi, mardi, mercredi et samedi
-30 23 * * * cd /home/mjzg4129/data/foot_3d && flock -w 3600 data/matches/.run.lock tools/lake_update.sh; case $(date +\%w) in 0|1|2|3|6) .venv/bin/python tools/check_matches.py >> data/matches/check.log 2>&1;; esac
+30 23 * * * cd /home/mjzg4129/data/foot_3d && .venv/bin/python -m orchestration run nuit >> /home/mjzg4129/data/pipelines/cron.log 2>&1
 # foot_db: fraicheur des sources (avertissement apres 4 jours sans chargement, erreur apres 15), tous les jours a 8h
-0 8 * * * cd /home/mjzg4129/data/foot_db && motherduck_token=$(cat /home/mjzg4129/.motherduck_token) /home/mjzg4129/data/foot_3d/.venv/bin/dbt source freshness --profiles-dir . >> /home/mjzg4129/data/foot_3d/data/matches/freshness.log 2>&1

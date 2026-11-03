@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow"><title>Base foot · connexion</title>
+<style>
+:root{--papier:#ebe7de;--encre:#1d1b19;--rouge:#c2393f}
+@media (prefers-color-scheme:dark){:root{--papier:#1d1b19;--encre:#ebe7de}}
+body{margin:0;min-height:100vh;display:grid;place-items:center;background:var(--papier);color:var(--encre);font:16px Georgia,serif}
+form{display:grid;gap:12px;padding:16px;width:min(320px,100% - 32px)}
+input,button{font:inherit;padding:8px 10px;border-radius:4px;border:1px solid var(--encre)}
+button{background:var(--encre);color:var(--papier);cursor:pointer}
+p{color:var(--rouge);margin:0}
+</style></head>
+<body><form method="post"><h1 style="font-size:20px;margin:0">Base foot · SQL</h1>
+<input type="password" name="mot_de_passe" placeholder="mot de passe" autofocus autocomplete="current-password">
+<button>Entrer</button>{% if erreur %}<p>{{ erreur }}</p>{% endif %}</form></body></html>

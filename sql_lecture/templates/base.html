@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Base foot · SQL</title>
+<link href="https://fonts.googleapis.com/css2?family=Arvo:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{--papier:#ebe7de;--encre:#1d1b19;--rouge:#c2393f;--trait:#cfc8ba;--doux:#6b655d;--carte:#f5f2eb}
+@media (prefers-color-scheme:dark){:root{--papier:#1d1b19;--encre:#ebe7de;--trait:#3a3632;--doux:#a39b90;--carte:#262320}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--papier);color:var(--encre);font:15px/1.45 Arvo,Georgia,serif}
+header{display:flex;gap:18px;align-items:baseline;padding:14px 20px;border-bottom:2px solid var(--encre);flex-wrap:wrap}
+header h1{font-size:19px;margin:0}header h1 span{color:var(--rouge)}
+header a{color:var(--encre)}header .maj{color:var(--doux);font-size:13px;margin-left:auto}
+main{padding:16px 20px}
+a{color:var(--rouge)}
+textarea{width:100%;min-height:150px;font:14px/1.4 ui-monospace,Menlo,monospace;background:var(--carte);color:var(--encre);border:1px solid var(--trait);padding:10px;border-radius:4px}
+button{font:inherit;background:var(--encre);color:var(--papier);border:0;padding:7px 16px;border-radius:4px;cursor:pointer}
+button.second{background:transparent;color:var(--encre);border:1px solid var(--encre)}
+.erreur{background:var(--rouge);color:#fff;padding:8px 12px;border-radius:4px;white-space:pre-wrap;font-family:ui-monospace,Menlo,monospace;font-size:13px}
+.info{color:var(--doux);font-size:13px}
+.table{overflow:auto;max-height:65vh;border:1px solid var(--trait);margin-top:10px}
+table{border-collapse:collapse;font:13px ui-monospace,Menlo,monospace;width:max-content;min-width:100%}
+th,td{padding:4px 10px;border-bottom:1px solid var(--trait);text-align:left;white-space:nowrap;max-width:420px;overflow:hidden;text-overflow:ellipsis}
+th{position:sticky;top:0;background:var(--encre);color:var(--papier)}
+td.null{color:var(--doux);font-style:italic}
+</style>
+</head>
+<body>
+<header><h1>Base foot <span>·</span> SQL en lecture seule</h1>
+<a href="{{ url_for('index') }}">Requêtes</a><a href="{{ url_for('pipelines') }}">Pipelines</a><a href="{{ url_for('deconnexion') }}">Déconnexion</a>
+<span class="maj">copie du {{ maj }}</span></header>
+<main>{% block contenu %}{% endblock %}</main>
+</body></html>

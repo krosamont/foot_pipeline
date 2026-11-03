@@ -15,21 +15,46 @@ python -m pytest tests                      # runs the pipeline on the fixtures 
 
 The full match data (`data/`) and the published 3D files (`fabric/data/`) stay on the server (`.gitignore`).
 
-Everything that runs on the o2switch server (`~/data/foot_3d`), up to the sources of MotherDuck:
+Everything that runs on the o2switch server (`~/data/foot_3d`), up to the DuckDB database `~/data/foot.duckdb`:
 
 | Step | Code | Cron |
 |---|---|---|
 | FotMob calendars of the current season | `pmd/fixtures.py` | every day at 9:05 |
 | Download and compute each match, 4 h after kick-off | `tools/run_missing.py` (pipeline `pmd/`) | every 15 min |
 | 3D portrait of the match on data-workers.com | `tools/publish_web.py`, `fabric/`, `web/` | after each match |
-| MotherDuck sources (`md:foot`, schema `raw`), then dbt build of [foot_db](https://github.com/krosamont/foot_db) | `tools/to_bronze.py`, `tools/lake_update.sh` | every 15 min |
-| Check that every match played is everywhere: fetched, on the site, in MotherDuck raw and gold (e-mail) | `tools/check_matches.py` | 23:30 |
+| Nightly pipeline `nuit` (see below): sources (schema `raw`), dbt build of [foot_db](https://github.com/krosamont/foot_db), freshness, match check, Parquet backup, read-only copy | `orchestration/`, `tools/to_bronze.py`, `tools/check_matches.py` | 23:30 |
 | Check that every match of each past season is there (rules per competition) | `tools/check_fixtures.py` | by hand |
-| Old project seasons 2020-2021 to 2024-2025 (Parquet) -> MotherDuck `md:foot`, schema `raw_legacy` | `tools/load_legacy.py` | once (2026-10-27) |
+| Old project seasons 2020-2021 to 2024-2025 (Parquet) -> `foot.duckdb`, schema `raw_legacy` | `tools/load_legacy.py` | once (2026-10-27) |
 
 No Google Cloud since 2026-10-28 (`run_missing.py --no-gcp`; the BigQuery and GCP cron jobs are commented out):
-everything is on the server and in MotherDuck. The full crontab is in `deploy/crontab.txt`. Data, downloads, generated files and environments stay on the server
+no MotherDuck since 2026-11-03: everything is on the server, in one DuckDB file. The full crontab is in `deploy/crontab.txt`. Data, downloads, generated files and environments stay on the server
 (`.gitignore`). The bronze / silver / gold models are in the separate repository foot_db.
+
+## Orchestration (`orchestration/`)
+
+The server allows no daemon (no Airflow, no listening port), so pipelines are small DAGs run by cron:
+`python -m orchestration run nuit`. Each task is a shell command with dependencies, retries, a timeout, an optional
+condition (e.g. weekdays) and a blocking / non-blocking flag; a task whose blocking dependency failed is skipped.
+Runs are recorded in `~/data/pipelines/runs.sqlite`, one log per task in `~/data/pipelines/logs/`, and an e-mail is sent
+when a task fails. `python -m orchestration liste` shows the DAG, `python -m orchestration historique` the last runs.
+
+    charger_sources ─┐
+                     ├─> dbt_build ─┬─> fraicheur        (non-blocking)
+    maj_foot_db ─────┘              ├─> controle_matchs  (Sun, Mon, Tue, Wed, Sat; non-blocking)
+                                    └─> copie_lecture    (~/data/lecture/foot.duckdb for the SQL page)
+    charger_sources ──> sauvegarde  (EXPORT DATABASE to Parquet in ~/data/sauvegardes, last 7 kept)
+
+Extract and load are Python (`tools/to_bronze.py`); every transformation is a dbt model in foot_db.
+Restore a backup: `duckdb new.duckdb -c "IMPORT DATABASE '~/data/sauvegardes/foot-YYYYMMDD'"`.
+
+## Read-only SQL page (`sql_lecture/`)
+
+https://data-workers.com/sql — Flask app run by Passenger (cPanel Python app, root `~/data/sql_lecture`, Python 3.12),
+password hashed in `~/.config/sql_lecture/config.json`. It queries the nightly copy, never the production file, with
+`read_only`, `enable_external_access=false`, `lock_configuration=true`, only SELECT / EXPLAIN statements (DESCRIBE, SHOW,
+SUMMARIZE and WITH parse as SELECT), one statement at a time, a 60 s timeout and a row limit. Schema browser, CSV export
+and a page with the pipeline runs. Deploy: copy `sql_lecture/` to `~/data/sql_lecture/` and
+`cloudlinux-selector restart --json --interpreter python --app-root data/sql_lecture`.
 
 # Football match pipeline + 3D portrait
 
