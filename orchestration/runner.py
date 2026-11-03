@@ -3,7 +3,10 @@
 Un pipeline = des tâches (commande shell), leurs dépendances, des relances, un délai maximum, une condition
 d'exécution. Le cron lance `python -m orchestration run <pipeline>` ; chaque exécution est enregistrée dans
 ~/data/pipelines/runs.sqlite (pipelines, tâches, statuts, durées) avec un journal par tâche, et un e-mail part si une
-tâche bloquante échoue. Une tâche dont une dépendance a échoué n'est pas lancée (statut « sautée »).
+tâche bloquante échoue. Une tâche dont une dépendance a échoué n'est pas lancée (statut « sautee_dependance »).
+Une tâche peut aussi finir sur « rien » (code_rien : rien de nouveau) ; les tâches seulement_si_nouveau qui n'ont que
+des dépendances « rien » sont alors sautées (comme un ShortCircuitOperator d'Airflow). Les pipelines qui écrivent dans
+la même base partagent un verrou : le second attend que le premier ait fini.
 """
 import datetime as dt
 import fcntl
@@ -33,6 +36,8 @@ class Tache:
     delai_max: int = 3600                          # secondes ; au-delà la tâche est arrêtée (échec)
     bloquante: bool = True                         # False : un échec est signalé mais ne fait pas échouer le pipeline
     condition: Optional[Callable[[], bool]] = None # False -> tâche sautée (ex. : seulement certains jours)
+    code_rien: Optional[int] = None                # ce code de sortie = réussite sans rien de nouveau (statut « rien »)
+    seulement_si_nouveau: bool = False             # sautée si toutes ses dépendances ont fini sur « rien »
     description: str = ''
 
 
@@ -41,6 +46,8 @@ class Pipeline:
     nom: str
     taches: list
     description: str = ''
+    verrou: str = ''                               # nom du verrou (par défaut le nom du pipeline) ; partagé = jamais en même temps
+    attente_verrou: int = 0                        # secondes d'attente si le verrou est pris (0 : on abandonne)
 
     def ordre(self):
         """Ordre topologique (les dépendances d'abord), en gardant l'ordre de déclaration."""
@@ -102,12 +109,17 @@ def queue(chemin, n=40):
 def executer(p: Pipeline):
     """Exécute un pipeline (un seul à la fois par pipeline : verrou), renvoie le statut final."""
     os.makedirs(os.path.join(ACCUEIL, 'logs', p.nom), exist_ok=True)
-    verrou = open(os.path.join(ACCUEIL, f'.{p.nom}.lock'), 'w')
-    try:
-        fcntl.flock(verrou, fcntl.LOCK_EX | fcntl.LOCK_NB)
-    except BlockingIOError:
-        print(f'[{p.nom}] déjà en cours, rien à faire')
-        return 'deja_en_cours'
+    verrou = open(os.path.join(ACCUEIL, f'.{p.verrou or p.nom}.lock'), 'w')
+    limite = time.time() + p.attente_verrou
+    while True:
+        try:
+            fcntl.flock(verrou, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            break
+        except BlockingIOError:
+            if time.time() >= limite:
+                print(f'[{p.nom}] verrou {p.verrou or p.nom} pris (un autre pipeline tourne), abandon')
+                return 'deja_en_cours'
+            time.sleep(30)
     con = base()
     run_id = con.execute('insert into runs (pipeline, debut, statut) values (?, ?, ?)', (p.nom, maintenant(), 'en_cours')).lastrowid
     con.commit()
@@ -123,6 +135,8 @@ def executer(p: Pipeline):
             statuts[t.nom] = 'sautee_dependance'
         elif t.condition and not t.condition():
             statuts[t.nom] = 'sautee'
+        elif t.seulement_si_nouveau and t.depend_de and all(statuts.get(d) == 'rien' for d in t.depend_de):
+            statuts[t.nom] = 'sautee_rien_de_nouveau'
         else:
             code, tentative = None, 0
             while True:
@@ -138,11 +152,11 @@ def executer(p: Pipeline):
                         f.write(f'\n!!! arrêtée après {t.delai_max} s\n')
                         code = -9
                     f.write(f'=== code {code} en {time.time() - t0:.0f} s\n')
-                if code == 0 or tentative > t.relances:
+                if code == 0 or code == t.code_rien or tentative > t.relances:
                     break
                 time.sleep(t.attente_relance)
-            statuts[t.nom] = 'ok' if code == 0 else 'echec'
-            if code != 0:
+            statuts[t.nom] = 'ok' if code == 0 else 'rien' if code == t.code_rien else 'echec'
+            if statuts[t.nom] == 'echec':
                 echecs.append((t, journal))
             con.execute('insert into taches values (?, ?, ?, ?, ?, ?, ?, ?)',
                         (run_id, t.nom, debut, maintenant(), statuts[t.nom], tentative, code, journal))

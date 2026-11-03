@@ -22,7 +22,8 @@ Everything that runs on the o2switch server (`~/data/foot_3d`), up to the DuckDB
 | FotMob calendars of the current season | `pmd/fixtures.py` | every day at 9:05 |
 | Download and compute each match, 4 h after kick-off | `tools/run_missing.py` (pipeline `pmd/`) | every 15 min |
 | 3D portrait of the match on data-workers.com | `tools/publish_web.py`, `fabric/`, `web/` | after each match |
-| Nightly pipeline `nuit` (see below): sources (schema `raw`), dbt build of [foot_db](https://github.com/krosamont/foot_db), freshness, match check, Parquet backup, read-only copy | `orchestration/`, `tools/to_bronze.py`, `tools/check_matches.py` | 23:30 |
+| Pipeline `journee` (see below): new matches into the sources (schema `raw`), then the read-only copy if anything was loaded | `orchestration/`, `tools/to_bronze.py` | every 2 h, 9:45 to 21:45 |
+| Pipeline `nuit` (see below): sources, dbt build of [foot_db](https://github.com/krosamont/foot_db), freshness, match check, Parquet backup, read-only copy | `orchestration/`, `tools/to_bronze.py`, `tools/check_matches.py` | 23:30 |
 | Check that every match of each past season is there (rules per competition) | `tools/check_fixtures.py` | by hand |
 | Old project seasons 2020-2021 to 2024-2025 (Parquet) -> `foot.duckdb`, schema `raw_legacy` | `tools/load_legacy.py` | once (2026-10-27) |
 
@@ -35,6 +36,9 @@ no MotherDuck since 2026-11-03: everything is on the server, in one DuckDB file.
 The server allows no daemon (no Airflow, no listening port), so pipelines are small DAGs run by cron:
 `python -m orchestration run nuit`. Each task is a shell command with dependencies, retries, a timeout, an optional
 condition (e.g. weekdays) and a blocking / non-blocking flag; a task whose blocking dependency failed is skipped.
+A task can end on `rien` (its `code_rien`, e.g. 3 for to_bronze.py: nothing new); a `seulement_si_nouveau` task whose
+dependencies all ended on `rien` is skipped (like Airflow's ShortCircuitOperator). `journee` and `nuit` share the lock
+`base_foot`: two writes to the database never run at once, the second waits.
 Runs are recorded in `~/data/pipelines/runs.sqlite`, one log per task in `~/data/pipelines/logs/`, and an e-mail is sent
 when a task fails. `python -m orchestration liste` shows the DAG, `python -m orchestration historique` the last runs.
 
@@ -44,13 +48,18 @@ when a task fails. `python -m orchestration liste` shows the DAG, `python -m orc
                                     └─> copie_lecture    (~/data/lecture/foot.duckdb for the SQL page)
     charger_sources ──> sauvegarde  (EXPORT DATABASE to Parquet in ~/data/sauvegardes, last 7 kept)
 
+    journee:  charger_sources ──> copie_lecture  (only if new matches were loaded)
+
+bronze, silver and gold are views, so loaded matches are visible at once; the day pipeline only refreshes the copy
+read by the SQL page (about 5 min for 3 GB). dbt tests, backup and checks stay at night.
+
 Extract and load are Python (`tools/to_bronze.py`); every transformation is a dbt model in foot_db.
 Restore a backup: `duckdb new.duckdb -c "IMPORT DATABASE '~/data/sauvegardes/foot-YYYYMMDD'"`.
 
 ## Read-only SQL page (`sql_lecture/`)
 
 https://data-workers.com/sql — Flask app run by Passenger (cPanel Python app, root `~/data/sql_lecture`, Python 3.12),
-password hashed in `~/.config/sql_lecture/config.json`. It queries the nightly copy, never the production file, with
+password hashed in `~/.config/sql_lecture/config.json`. It queries the read-only copy (refreshed after each load), never the production file, with
 `read_only`, `enable_external_access=false`, `lock_configuration=true`, only SELECT / EXPLAIN statements (DESCRIBE, SHOW,
 SUMMARIZE and WITH parse as SELECT), one statement at a time, a 60 s timeout and a row limit. Schema browser, CSV export
 and a page with the pipeline runs. Deploy: copy `sql_lecture/` to `~/data/sql_lecture/` and

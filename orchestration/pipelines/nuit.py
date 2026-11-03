@@ -11,18 +11,14 @@ Extraction et chargement en Python (foot_3d/tools/to_bronze.py) ; toute transfor
 import datetime as dt
 
 from orchestration.runner import Pipeline, Tache
+from orchestration.pipelines.communes import BASE, DUCKDB, PY, charger_sources, copie_lecture
 
-BASE = '~/data/foot.duckdb'
-LECTURE = '~/data/lecture/foot.duckdb'   # même nom de fichier : les vues dbt visent le catalogue « foot »
 SAUVEGARDES = '~/data/sauvegardes'
-PY = '~/data/foot_3d/.venv/bin/python'
 DBT = '~/data/foot_3d/.venv/bin/dbt'
-DUCKDB = '~/bin/duckdb'   # mémoire et threads limités dans les commandes : o2switch tue les processus trop gourmands
 
-PIPELINE = Pipeline('nuit', description='sources, dbt, contrôles, sauvegarde et copie de lecture de la base foot', taches=[
-    Tache('charger_sources', f'flock -w 3600 data/matches/.run.lock {PY} -u tools/to_bronze.py; c=$?; [ $c -eq 3 ] && exit 0 || exit $c',
-          dossier='~/data/foot_3d', relances=2, attente_relance=300, delai_max=3600,
-          description='nouveaux matchs (fichiers de data/matches/) -> tables raw'),
+PIPELINE = Pipeline('nuit', description='sources, dbt, contrôles, sauvegarde et copie de lecture de la base foot',
+                    verrou='base_foot', attente_verrou=3600, taches=[
+    charger_sources(),
     Tache('maj_foot_db', 'git pull -q --ff-only && git log --oneline -1', dossier='~/data/foot_db', relances=2,
           description='modèles dbt à jour depuis GitHub'),
     Tache('dbt_build', f'DBT={DBT} scripts/dbt_build.sh', dossier='~/data/foot_db',
@@ -39,7 +35,5 @@ PIPELINE = Pipeline('nuit', description='sources, dbt, contrôles, sauvegarde et
           f'du -sh "$d" && ls -1d {SAUVEGARDES}/foot-* | head -n -7 | xargs -r rm -rf',
           depend_de=['charger_sources'], relances=1, delai_max=3600,
           description='EXPORT DATABASE en Parquet (restauration : IMPORT DATABASE), 7 dernières gardées'),
-    Tache('copie_lecture',
-          f'mkdir -p ~/data/lecture && {DUCKDB} {BASE} -c "CHECKPOINT" && cp {BASE} {LECTURE}.tmp && mv -f {LECTURE}.tmp {LECTURE} && ls -la {LECTURE}',
-          depend_de=['dbt_build'], description='copie de la base pour la page web en lecture seule'),
+    copie_lecture(depend_de=['dbt_build']),
 ])
