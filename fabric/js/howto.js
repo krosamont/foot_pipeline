@@ -46,12 +46,12 @@ function buildRead() {
   const momP = [cx(chartMinute(state.T)), CH.y];
 
   // 1. the shot peak: top centre, leader down to the peak
-  leader(svg, block(`<b>Les pics sont les tirs.</b> La montagne jaillit au moment du tir, plus <b>large</b> quand l'occasion est grosse (xG). Un but : la grande flèche.`, 440, 96, 'left'), hillP, 'auto');
+  leader(svg, block(EN ? `<b>The peaks are the shots.</b> The mountain rises at the moment of the shot, <b>wider</b> when the chance is bigger (xG). A goal: the big arrow.` : `<b>Les pics sont les tirs.</b> La montagne jaillit au moment du tir, plus <b>large</b> quand l'occasion est grosse (xG). Un but : la grande flèche.`, 440, 96, 'left'), hillP, 'auto');
   // 2-4. right column, in the order of their targets (top to bottom) so the leaders never cross
   const notes = [
-    { y: seamP[1], html: `<b>La frontière, c'est le territoire.</b> Elle avance quand une équipe progresse avec le ballon et se lève en vague quand elle pousse.`, pts: [seamP] },
-    { y: Math.min(homeP[1], awayP[1]), html: `<b>Les deux couleurs sont les deux équipes</b> : ${homeTag} part de son but, ${awayTag} du sien.`, pts: [homeP, awayP] },
-    { y: momP[1], minY: CH.y - 130, html: `<b>Momentum</b> (menace créée) : au-dessus ${homeTag}, en dessous ${awayTag}. Cliquer sur la courbe pour se déplacer.<div class="hw-keys"><span>⚽ but</span><span><i class="k-y"></i> carton jaune</span><span><i class="k-r"></i> carton rouge</span><span>⇄ remplacement</span></div>`, pts: [momP] },
+    { y: seamP[1], html: EN ? `<b>The border is the territory.</b> It moves forward when a team advances with the ball and rises in a wave when it pushes.` : `<b>La frontière, c'est le territoire.</b> Elle avance quand une équipe progresse avec le ballon et se lève en vague quand elle pousse.`, pts: [seamP] },
+    { y: Math.min(homeP[1], awayP[1]), html: EN ? `<b>The two colours are the two teams</b>: ${homeTag} starts from its goal, ${awayTag} from its own.` : `<b>Les deux couleurs sont les deux équipes</b> : ${homeTag} part de son but, ${awayTag} du sien.`, pts: [homeP, awayP] },
+    { y: momP[1], minY: CH.y - 130, html: EN ? `<b>Momentum</b> (threat created): above ${homeTag}, below ${awayTag}. Click the curve to jump in time.<div class="hw-keys"><span>⚽ goal</span><span><i class="k-y"></i> yellow card</span><span><i class="k-r"></i> red card</span><span>⇄ substitution</span></div>` : `<b>Momentum</b> (menace créée) : au-dessus ${homeTag}, en dessous ${awayTag}. Cliquer sur la courbe pour se déplacer.<div class="hw-keys"><span>⚽ but</span><span><i class="k-y"></i> carton jaune</span><span><i class="k-r"></i> carton rouge</span><span>⇄ remplacement</span></div>`, pts: [momP] },
   ].sort((a, b) => a.y - b.y);
   let y = 214;
   for (const n of notes) { const b = block(n.html, 1235, Math.max(y, n.minY || 0), 'right'); n.pts.forEach(p => leader(svg, b, p)); y = b.B + 26; }   // (momentum: low, near its bar)
@@ -63,7 +63,7 @@ function buildRead() {
 
 function addBar() {
   const bar = document.createElement('div'); bar.className = 'hw-bar';
-  bar.innerHTML = `<span class="hw-title">Comment lire</span><span class="hw-close" title="Fermer (Échap)">✕</span>`;
+  bar.innerHTML = EN ? `<span class="hw-title">How to read</span><span class="hw-close" title="Close (Esc)">✕</span>` : `<span class="hw-title">Comment lire</span><span class="hw-close" title="Fermer (Échap)">✕</span>`;
   bar.querySelector('.hw-close').addEventListener('click', (e) => { e.stopPropagation(); hideHowto(); });
   layer.appendChild(bar);
 }
@@ -75,15 +75,16 @@ const tips = () => document.getElementById('tips');   // the scene's shot / foul
 // The guide shown to readers is one generic picture (assets/howto/comment-lire.jpg, made by tools/make_howto.js from the
 // live build below on a neutral "Équipe A - Équipe B" frame): it opens at once, the same for every match. If the
 // picture is missing, the notes are built live on the scene as it is.
-const HOWTO_IMG = '../assets/howto/comment-lire.jpg';
+const EN = new URLSearchParams(location.search).get('lang') === 'en';  // ?lang=en : the English pages of data-workers.com/en/
+const HOWTO_IMG = EN ? null : '../assets/howto/comment-lire.jpg';   // the picture has French text: in English, the notes are built live
 function showImage() {
   layer.innerHTML = ''; layer.dataset.view = 'image';
-  const img = new Image(); img.className = 'hw-img'; img.alt = 'Comment lire la carte';
+  const img = new Image(); img.className = 'hw-img'; img.alt = EN ? 'How to read the map' : 'Comment lire la carte';
   img.onerror = () => { if (layer.dataset.view === 'image') buildRead(); };
   img.src = HOWTO_IMG; layer.appendChild(img); addBar();
 }
 function showHowto(close, shot, live = false) { onClose = close; example = shot || null; layer.classList.add('on'); if (link()) link().style.visibility = 'hidden'; if (tips()) tips().style.visibility = 'hidden';
-  if (live) buildRead(); else showImage(); }
+  if (live || !HOWTO_IMG) buildRead(); else showImage(); }
 function hideHowto() { if (!layer.classList.contains('on')) return; layer.classList.remove('on'); if (link()) link().style.visibility = ''; if (tips()) tips().style.visibility = ''; layer.innerHTML = ''; const f = onClose; onClose = null; if (f) f(); }
 const isHowtoOpen = () => layer.classList.contains('on');
 window.addEventListener('keydown', (e) => { if (e.key === 'Escape') hideHowto(); });

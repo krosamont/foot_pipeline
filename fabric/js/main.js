@@ -10,6 +10,8 @@ import { cssVar, FONT_TEXT, FONT_MONO } from './fonts.js';
 import { CH, cx, drawPulse } from './pulse.js';
 import { $, ui, updateUI } from './ui.js';
 import { showHowto, isHowtoOpen } from './howto.js';
+const EN = new URLSearchParams(location.search).get('lang') === 'en';  // ?lang=en : the English pages of data-workers.com/en/
+if (EN) { document.documentElement.lang = 'en'; const hw = document.getElementById('howto'); if (hw) hw.textContent = 'How to read'; const gal = document.getElementById('gallery'); if (gal) gal.innerHTML = '‹&nbsp;&nbsp;GALLERY'; }
 
 // ------------------------------------------------------------------ frame
 function frame(dt) { step(dt); updateGeometry(); drawSky(dt); drawPulse(state.T, state.t); updateUI(state.T, state.t); renderer.render(scene, camera); }
@@ -87,13 +89,13 @@ window.addEventListener('keydown', (e) => { if (e.code === 'Space' && !isHowtoOp
 // a double click / double tap or the "Vue d'origine" button go back to the default view. The match keeps playing.
 if (!RENDER_MODE) {
   const gl = document.getElementById('gl'), btn = document.createElement('div');
-  btn.id = 'viewbtn'; btn.textContent = 'Glisser pour tourner'; document.getElementById('ui').appendChild(btn);   // not in the video renders
+  btn.id = 'viewbtn'; btn.textContent = EN ? 'Drag to rotate' : 'Glisser pour tourner'; document.getElementById('ui').appendChild(btn);   // not in the video renders
   const v = { az: 0, el: 0, zoom: 1 }, pts = new Map(); let pinch = null;
   const moved = () => v.az !== 0 || v.el !== 0 || v.zoom !== 1;
   const apply = () => {
     setUserView(v);
     if (paused) { updateUI(state.T, state.t); renderer.render(scene, camera); }   // a paused match is redrawn at once
-    btn.textContent = moved() ? 'Vue d’origine' : 'Glisser pour tourner'; btn.classList.toggle('on', moved());
+    btn.textContent = moved() ? (EN ? 'Reset view' : 'Vue d’origine') : (EN ? 'Drag to rotate' : 'Glisser pour tourner'); btn.classList.toggle('on', moved());
   };
   const perPx = () => W / gl.getBoundingClientRect().width;   // stage pixels per screen pixel (the page can be scaled)
   gl.addEventListener('pointerdown', (e) => { gl.setPointerCapture(e.pointerId); pts.set(e.pointerId, [e.clientX, e.clientY]); gl.classList.add('drag'); });

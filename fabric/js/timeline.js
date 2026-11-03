@@ -9,7 +9,8 @@ const SH = M.periods.secondHalfStart, FH_END = M.periods.firstHalfEnd, END = M.p
 const PERIODS = M.periods.list || [{ start: 0, end: FH_END, nom0: 0, nom1: 45 }, { start: SH, end: END, nom0: 45, nom1: 90 }];
 const BREAKS = PERIODS.slice(1).map((p, i) => ({ end: PERIODS[i].end, start: p.start, nom: p.nom0 }));
 const MAX_MIN = PERIODS[PERIODS.length - 1].nom1;   // 90, or 120 with extra time
-const PERIOD_LABELS = ['1RE MI-TEMPS', '2E MI-TEMPS', 'PROLONGATION 1', 'PROLONGATION 2'];
+const EN = new URLSearchParams(location.search).get('lang') === 'en';  // ?lang=en : the English pages of data-workers.com/en/
+const PERIOD_LABELS = EN ? ['1ST HALF', '2ND HALF', 'EXTRA TIME 1', 'EXTRA TIME 2'] : ['1RE MI-TEMPS', '2E MI-TEMPS', 'PROLONGATION 1', 'PROLONGATION 2'];
 function periodIndex(T) { let k = 0; PERIODS.forEach((p, i) => { if (T >= p.start) k = i; }); return k; }
 // displayed minute: each period restarts at its nominal minute at its own kick-off (1.., 46.., 91.., 106..; cap+n in stoppage time)
 function dispMinute(T) { const p = PERIODS[periodIndex(T)]; return [p.nom0 + 1 + Math.floor((T - p.start) / 60), p.nom1]; }

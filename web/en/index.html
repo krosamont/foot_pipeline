@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>3D matches · Data Workers</title>
+<meta name="description" content="Choose a season, a competition and a matchday, then a match to see its 3D portrait (WhoScored / Opta events, FotMob).">
+<link rel="stylesheet" href="/projet/foot_3d/assets/fonts/fonts.css">
+<style>
+  :root {
+    --bg: #0b0d16; --panel: #141724; --panel-2: #1b1f30; --line: rgba(255, 255, 255, 0.08);
+    --text: #f2f3f7; --muted: #9ca1b4; --faint: #6d7286; --accent: #2dc4c2;
+  }
+  * { box-sizing: border-box; }
+  html { background: var(--bg); }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font-text); }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 32px 16px 64px; }
+  header h1 { margin: 0; font-family: var(--font-num); font-weight: 900; font-size: clamp(28px, 6vw, 44px); letter-spacing: -0.01em; line-height: 1.05; }
+  header h1 span { color: var(--accent); }
+  header p { margin: 10px 0 0; color: var(--muted); font-size: 14px; line-height: 1.55; max-width: 640px; }
+
+  .season { margin: 28px 0 14px; font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--faint); }
+  .season b { color: var(--text); font-weight: 600; letter-spacing: 0.08em; }
+  select { font: inherit; font-size: 14px; letter-spacing: 0; text-transform: none; color: var(--text); background: var(--panel);
+           border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; min-height: 44px; }
+  select:focus-visible, button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* competitions as tabs */
+  .comps { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 18px; scrollbar-width: thin; }
+  .comps button { flex: none; font: inherit; font-size: 13px; font-weight: 600; color: var(--muted); background: var(--panel); border: 1px solid var(--line);
+                  border-radius: 999px; padding: 9px 14px; min-height: 40px; cursor: pointer; white-space: nowrap; }
+  .comps button:hover { color: var(--text); }
+  .comps button.on { color: var(--bg); background: var(--accent); border-color: var(--accent); }
+
+  /* matchday stepper */
+  .rounds { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .rounds button { flex: none; width: 44px; height: 44px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel); color: var(--text);
+                   font-size: 18px; cursor: pointer; }
+  .rounds button:disabled { opacity: 0.3; cursor: default; }
+  .rounds select { flex: 1; max-width: 260px; font-weight: 600; }
+  .count { color: var(--faint); font-size: 12px; margin-left: auto; white-space: nowrap; }
+
+  .day { margin: 22px 0 8px; font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--faint); }
+  .match { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px; padding: 12px 14px; margin-bottom: 8px;
+           background: var(--panel); border: 1px solid var(--line); border-radius: 12px; color: inherit; text-decoration: none; transition: background 0.15s, border-color 0.15s; }
+  .match:hover { background: var(--panel-2); border-color: rgba(45, 196, 194, 0.45); }
+  .team { display: flex; align-items: center; gap: 10px; min-width: 0; font-weight: 600; font-size: 14px; }
+  .team.home { justify-content: flex-end; text-align: right; }
+  .team span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .team img { width: 28px; height: 28px; object-fit: contain; flex: none; }
+  .score { font-family: var(--font-num); font-weight: 900; font-size: 20px; min-width: 64px; text-align: center; font-variant-numeric: tabular-nums; }
+  .empty { color: var(--muted); padding: 24px 0; line-height: 1.6; }
+  .switchbar { display: flex; justify-content: flex-end; margin-bottom: 12px; }
+  .theme-switch { border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; font-size: 13px; color: var(--muted); text-decoration: none; white-space: nowrap; }
+  .theme-switch:hover { border-color: var(--accent); color: var(--text); }
+  footer { margin-top: 40px; color: var(--faint); font-size: 12px; line-height: 1.6; }
+  footer a { color: var(--muted); }
+  @media (max-width: 520px) {
+    .team img { width: 22px; height: 22px; }
+    .team { font-size: 13px; gap: 7px; }
+    .score { font-size: 17px; min-width: 52px; }
+    .match { gap: 8px; padding: 11px 10px; }
+    .count { display: none; }
+  }
+</style>
+<style id="theme-switch">
+/* switch to the light version: same place and look on every dark page of data-workers.com (top right) */
+a.theme-switch { position: fixed !important; top: 14px !important; right: 14px !important; left: auto !important; bottom: auto !important; z-index: 1000 !important; margin: 0 !important; display: inline-flex !important; align-items: center; letter-spacing: 0 !important; text-transform: none !important; text-decoration: none !important; white-space: nowrap; padding: 8px 13px !important; box-shadow: none !important; transform: none !important; font: 500 13px/1 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important; border: 1px solid rgba(255,255,255,.24) !important; border-radius: 999px !important; background: rgba(7,11,21,.8) !important; color: #e2e8f0 !important; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+a.theme-switch:hover { border-color: #2dc4c2 !important; color: #fff !important; }
+@media (max-width: 600px) { a.theme-switch { top: 10px !important; right: 10px !important; width: 38px; height: 38px; padding: 0 !important; justify-content: center; font-size: 0 !important; line-height: 0 !important; } a.theme-switch::before { content: ''; width: 19px; height: 19px; background: currentColor; -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='4.2'/%3E%3Cpath d='M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6'/%3E%3C/svg%3E") center / contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='4.2'/%3E%3Cpath d='M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6'/%3E%3C/svg%3E") center / contain no-repeat; } }
+</style>
+<link rel="alternate" hreflang="fr" href="https://data-workers.com/projet/foot_3d/">
+<link rel="alternate" hreflang="en" href="https://data-workers.com/en/projet/foot_3d/">
+<style id="lang-switch">
+a.lang-switch { position: fixed; top: 56px; right: 14px; z-index: 1000; display: inline-flex; align-items: center; justify-content: center; min-width: 42px; padding: 8px 12px; font: 600 13px/1 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; letter-spacing: .04em; text-decoration: none; border: 1px solid rgba(255,255,255,.24); border-radius: 999px; background: rgba(7,11,21,.8); color: #e2e8f0; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+a.lang-switch:hover { border-color: #2dc4c2; color: #fff; }
+@media (max-width: 600px) { a.lang-switch { right: 10px; width: 38px; height: 38px; min-width: 0; padding: 0; font-size: 12px; } }
+</style>
+<!-- partage:debut --><meta property="og:image" content="https://data-workers.com/assets/images/partage.png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:image:alt" content="Data Workers"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:image" content="https://data-workers.com/assets/images/partage.png"><!-- partage:fin -->
+</head>
+<body>
+<a class="lang-switch" href="/projet/foot_3d/" hreflang="fr" lang="fr" title="Version française">FR</a>
+<script>document.querySelector("a.lang-switch").addEventListener("click", (e) => { e.currentTarget.href = e.currentTarget.getAttribute("href").split("?")[0] + location.search; });</script>
+<div class="wrap">
+  <nav class="switchbar"><a class="theme-switch" href="clair/">Light version</a></nav>
+  <header>
+    <h1>Matches <span>in 3D</span></h1>
+    <p>Every match becomes a landscape: the two teams fight over the pitch action by action, shots make hills,
+       goals make peaks. Choose a competition and a matchday.</p>
+  </header>
+
+  <p class="season" id="season"></p>
+  <nav class="comps" id="comps" aria-label="Competition"></nav>
+  <div class="rounds">
+    <button type="button" id="prev" aria-label="Previous matchday">‹</button>
+    <select id="round" aria-label="Matchday"></select>
+    <button type="button" id="next" aria-label="Next matchday">›</button>
+    <span class="count" id="count"></span>
+  </div>
+  <div id="list"></div>
+
+  <footer>Data: WhoScored / Opta (events), FotMob (xG, line-ups, colours).
+    New matches are added after every matchday. · <a href="/en/">Data Workers</a></footer>
+</div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  const abs = (p) => (/^(https?:)?\//.test(p) ? p : '/projet/foot_3d/' + p);   // logos: shared with the French page
+  const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const fmtDay = (d) => new Date(d + 'T12:00:00Z').toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  const seasonLabel = (s) => s.replace('/', '-');
+  // matchdays are numbers in the leagues; other rounds (knock-out stages) keep their name and come after them
+  const roundLabel = (r) => (r == null ? 'No matchday' : /^\d+$/.test(r) ? `Matchday ${r}` : r);
+  const roundKey = (r) => (r == null ? [2, 0, ''] : /^\d+$/.test(r) ? [0, +r, ''] : [1, 0, r]);
+  const byRound = (a, b) => { const x = roundKey(a), y = roundKey(b); return x[0] - y[0] || x[1] - y[1] || x[2].localeCompare(y[2]); };
+  const ORDER = ['Premier League', 'LaLiga', 'Serie A', 'Bundesliga', 'Ligue 1', 'Champions League'];
+  const byComp = (a, b) => ((ORDER.indexOf(a) + 1 || 99) - (ORDER.indexOf(b) + 1 || 99)) || a.localeCompare(b);
+  let ALL = [], sel = {};
+
+  // the choice lives in the address (?saison=2025-2026&competition=Ligue%201&journee=5): links can be shared
+  function readUrl() {
+    const q = new URLSearchParams(location.search);
+    return { season: (q.get('saison') || '').replace('-', '/'), comp: q.get('competition') || '', round: q.get('journee') || '' };
+  }
+  function writeUrl() {
+    const q = new URLSearchParams({ saison: seasonLabel(sel.season), competition: sel.comp, journee: sel.round ?? '' });
+    history.replaceState(null, '', '?' + q.toString());
+  }
+
+  // only the latest season is offered (the matches of earlier seasons stay reachable by their own link)
+  const seasons = () => [...new Set(ALL.map((m) => m.season))].sort().reverse().slice(0, 1);
+  const comps = () => [...new Set(ALL.filter((m) => m.season === sel.season).map((m) => m.competition))].sort(byComp);
+  const rounds = () => [...new Set(ALL.filter((m) => m.season === sel.season && m.competition === sel.comp).map((m) => m.round ?? null))].sort(byRound);
+
+  function choose(want = {}) {
+    const ss = seasons(); sel.season = ss.includes(want.season) ? want.season : ss[0];
+    const cs = comps(); sel.comp = cs.includes(want.comp) ? want.comp : cs[0];
+    const rs = rounds(); sel.round = rs.includes(want.round) ? want.round : rs[rs.length - 1];   // default: the latest matchday
+    render();
+  }
+
+  function render() {
+    $('season').innerHTML = `Season <b>${esc(seasonLabel(sel.season))}</b>`;
+    $('comps').innerHTML = comps().map((c) => `<button type="button" data-c="${esc(c)}" class="${c === sel.comp ? 'on' : ''}" aria-pressed="${c === sel.comp}">${esc(c)}</button>`).join('');
+    const rs = rounds(), k = rs.indexOf(sel.round);
+    $('round').innerHTML = rs.map((r, i) => `<option value="${i}">${esc(roundLabel(r))}</option>`).join('');
+    $('round').value = String(k);
+    $('prev').disabled = k <= 0; $('next').disabled = k >= rs.length - 1;
+
+    const rows = ALL.filter((m) => m.season === sel.season && m.competition === sel.comp && (m.round ?? null) === sel.round)
+      .sort((a, b) => (a.date + a.slug).localeCompare(b.date + b.slug));
+    $('count').textContent = rows.length + (rows.length > 1 ? ' matches' : ' match');
+    if (!rows.length) {
+      $('list').innerHTML = '<p class="empty">No match published for this choice yet.</p>';
+    } else {
+      let html = '', day = '';
+      for (const m of rows) {
+        if (m.date !== day) { day = m.date; html += `<div class="day">${esc(fmtDay(day))}</div>`; }
+        html += `<a class="match" href="match.html?match=${encodeURIComponent(m.slug)}">
+          <div class="team home"><span>${esc(m.home)}</span>${m.home_logo ? `<img src="${esc(abs(m.home_logo))}" alt="" loading="lazy">` : ''}</div>
+          <div class="score">${esc(m.score)}</div>
+          <div class="team away">${m.away_logo ? `<img src="${esc(abs(m.away_logo))}" alt="" loading="lazy">` : ''}<span>${esc(m.away)}</span></div></a>`;
+      }
+      $('list').innerHTML = html;
+    }
+    writeUrl();
+  }
+
+  $('comps').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) choose({ season: sel.season, comp: b.dataset.c }); });
+  $('round').addEventListener('change', () => { sel.round = rounds()[+$('round').value]; render(); });
+  $('prev').addEventListener('click', () => { const rs = rounds(); sel.round = rs[Math.max(0, rs.indexOf(sel.round) - 1)]; render(); });
+  $('next').addEventListener('click', () => { const rs = rounds(); sel.round = rs[Math.min(rs.length - 1, rs.indexOf(sel.round) + 1)]; render(); });
+
+  fetch('/projet/foot_3d/matches.json', { cache: 'no-cache' }).then((r) => r.json()).then((list) => {
+    ALL = list.map((m) => ({ ...m, round: m.round == null ? null : String(m.round) }));
+    if (!ALL.length) { $('list').innerHTML = '<p class="empty">No match published yet.</p>'; return; }
+    const u = readUrl(); choose({ season: u.season, comp: u.comp, round: u.round || undefined });
+  }).catch(() => { $('list').innerHTML = '<p class="empty">The list of matches could not be loaded.</p>'; });
+</script>
+<script>
+  // the switch keeps the choice in the address (?saison=…&competition=… or ?match=…)
+  document.querySelector('.theme-switch').addEventListener('click', (e) => { e.currentTarget.href = e.currentTarget.getAttribute('href').split('?')[0] + location.search; });
+</script>
+</body>
+</html>

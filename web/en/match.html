@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>3D match · Data Workers</title>
+<link rel="stylesheet" href="/projet/foot_3d/assets/fonts/fonts.css">
+<style>
+  :root { --bg: #000; --bar: #0b0d16; --line: rgba(255, 255, 255, 0.08); --text: #f2f3f7; --muted: #9ca1b4; --accent: #2dc4c2; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font-family: var(--font-text); overflow: hidden; }
+  .bar { position: fixed; left: 0; right: 0; top: 0; height: 52px; display: flex; align-items: center; gap: 14px; padding: 0 16px;
+         background: var(--bar); border-bottom: 1px solid var(--line); z-index: 2; }
+  .bar a { color: var(--muted); text-decoration: none; font-size: 13px; white-space: nowrap; padding: 10px 0; }
+  .bar a:hover { color: var(--text); }
+  .bar a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .bar h1 { margin: 0; font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bar h1 small { color: var(--muted); font-weight: 400; margin-left: 8px; }
+  .bar .theme-switch { margin-left: auto; padding: 4px 11px; }
+  .bar .theme-switch { border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; font-size: 13px; color: var(--muted); text-decoration: none; white-space: nowrap; }
+  .bar .theme-switch:hover { border-color: var(--accent); color: var(--text); }
+  @media (max-width: 520px) { .bar .theme-switch { font-size: 12px; padding: 3px 8px; } }
+  #view { position: fixed; left: 0; right: 0; top: 52px; bottom: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  /* the 3D page has a fixed stage (1257 x 835, or 720 x 1280 upright): it is scaled to fit the window */
+  #frame { border: 0; flex: none; transform-origin: 50% 50%; background: #0b0d16; }
+  .msg { color: var(--muted); padding: 24px; text-align: center; }
+  @media (max-width: 520px) { .bar h1 small { display: none; } }
+  /* the switch is fixed at the top right of the bar: the title stops before it */
+  .bar { padding-right: 160px; }
+  @media (max-width: 600px) { .bar { padding-right: 130px; } }
+</style>
+<style id="theme-switch">
+/* switch to the light version: same place and look on every dark page of data-workers.com (top right) */
+a.theme-switch { position: fixed !important; top: 14px !important; right: 14px !important; left: auto !important; bottom: auto !important; z-index: 1000 !important; margin: 0 !important; display: inline-flex !important; align-items: center; letter-spacing: 0 !important; text-transform: none !important; text-decoration: none !important; white-space: nowrap; padding: 8px 13px !important; box-shadow: none !important; transform: none !important; font: 500 13px/1 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important; border: 1px solid rgba(255,255,255,.24) !important; border-radius: 999px !important; background: rgba(7,11,21,.8) !important; color: #e2e8f0 !important; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+a.theme-switch:hover { border-color: #2dc4c2 !important; color: #fff !important; }
+@media (max-width: 600px) { a.theme-switch { top: 10px !important; right: 10px !important; width: 38px; height: 38px; padding: 0 !important; justify-content: center; font-size: 0 !important; line-height: 0 !important; } a.theme-switch::before { content: ''; width: 19px; height: 19px; background: currentColor; -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='4.2'/%3E%3Cpath d='M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6'/%3E%3C/svg%3E") center / contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='4.2'/%3E%3Cpath d='M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6'/%3E%3C/svg%3E") center / contain no-repeat; } }
+</style>
+<link rel="alternate" hreflang="fr" href="https://data-workers.com/projet/foot_3d/match.html">
+<link rel="alternate" hreflang="en" href="https://data-workers.com/en/projet/foot_3d/match.html">
+<style id="lang-switch">
+a.lang-switch { position: fixed; top: 56px; right: 14px; z-index: 1000; display: inline-flex; align-items: center; justify-content: center; min-width: 42px; padding: 8px 12px; font: 600 13px/1 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; letter-spacing: .04em; text-decoration: none; border: 1px solid rgba(255,255,255,.24); border-radius: 999px; background: rgba(7,11,21,.8); color: #e2e8f0; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+a.lang-switch:hover { border-color: #2dc4c2; color: #fff; }
+@media (max-width: 600px) { a.lang-switch { right: 10px; width: 38px; height: 38px; min-width: 0; padding: 0; font-size: 12px; } }
+</style>
+<!-- partage:debut --><meta property="og:image" content="https://data-workers.com/assets/images/partage.png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:image:alt" content="Data Workers"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:image" content="https://data-workers.com/assets/images/partage.png"><!-- partage:fin -->
+</head>
+<body>
+<a class="lang-switch" href="/projet/foot_3d/match.html" hreflang="fr" lang="fr" title="Version française">FR</a>
+<script>document.querySelector("a.lang-switch").addEventListener("click", (e) => { e.currentTarget.href = e.currentTarget.getAttribute("href").split("?")[0] + location.search; });</script>
+<div class="bar">
+  <a href="./" id="back">← All matches</a>
+  <h1 id="title"></h1>
+  <a class="theme-switch" href="clair/match.html">Light version</a>
+</div>
+<div id="view"></div>
+<script>
+  const slug = new URLSearchParams(location.search).get('match') || '';
+  const view = document.getElementById('view');
+  if (!/^[A-Za-z0-9_-]+$/.test(slug)) {
+    view.innerHTML = '<p class="msg">No match selected. <a href="./" style="color:inherit">See the list</a></p>';
+  } else {
+    // a screen taller than wide (phone held upright) gets the 9:16 layout of the 3D page, else the wide one;
+    // turning the phone reloads the 3D in the other layout
+    const SIZES = { portrait: [720, 1280], wide: [1257, 835] };
+    let frame = null, layout = null;
+    const wanted = () => (view.clientHeight > view.clientWidth ? 'portrait' : 'wide');
+    const fit = () => {
+      const [w, h] = SIZES[layout];
+      frame.style.transform = `scale(${Math.min(view.clientWidth / w, view.clientHeight / h)})`;
+    };
+    const build = () => {
+      layout = wanted();
+      const [w, h] = SIZES[layout];
+      if (frame) frame.remove();
+      frame = document.createElement('iframe');
+      frame.id = 'frame';
+      frame.title = '3D portrait of the match';
+      frame.style.width = w + 'px';
+      frame.style.height = h + 'px';
+      frame.src = '/projet/foot_3d/fabric/index.html?lang=en&match=' + encodeURIComponent(slug) + (layout === 'portrait' ? '&layout=portrait' : '');
+      frame.allow = 'fullscreen';
+      view.appendChild(frame);
+      fit();
+    };
+    addEventListener('resize', () => (wanted() !== layout ? build() : fit()));
+    build();
+    fetch('/projet/foot_3d/matches.json', { cache: 'no-cache' }).then((r) => r.json()).then((list) => {
+      const m = list.find((x) => x.slug === slug);
+      if (!m) return;
+      // back to the list on this match's season, competition and matchday
+      document.getElementById('back').href = './?' + new URLSearchParams({ saison: m.season.replace('/', '-'), competition: m.competition, journee: m.round ?? '' });
+      const t = `${m.home} ${m.score} ${m.away}`;
+      document.getElementById('title').innerHTML = '';
+      document.getElementById('title').append(t);
+      const small = document.createElement('small');
+      small.textContent = `${m.competition} · ${new Date(m.date + 'T12:00:00Z').toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}`;
+      document.getElementById('title').append(small);
+      document.title = `${t} · 3D match`;
+    }).catch(() => {});
+  }
+</script>
+<script>
+  // the switch keeps the choice in the address (?saison=…&competition=… or ?match=…)
+  document.querySelector('.theme-switch').addEventListener('click', (e) => { e.currentTarget.href = e.currentTarget.getAttribute('href').split('?')[0] + location.search; });
+</script>
+</body>
+</html>

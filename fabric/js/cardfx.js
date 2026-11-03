@@ -3,6 +3,7 @@ import { W, H, P, sm } from './config.js';
 import { CARDS, videoTimeAt } from './timeline.js';
 import { rgb } from './sky.js';
 import { FONT_TEXT, FONT_MONO } from './fonts.js';
+const EN = new URLSearchParams(location.search).get('lang') === 'en';  // ?lang=en : the English pages of data-workers.com/en/
 
 // ------------------------------------------------------------------ card effects
 // a card drops in front of the pitch, spinning down with a glow; a red card pulses the screen red, a yellow card brings
@@ -41,7 +42,7 @@ function drawCardFx(t) {
     fx.fillStyle = gl; fx.beginPath(); fx.roundRect(-34, -48, 68, 96, 7); fx.fill(); fx.restore();
     // caption
     fx.save(); fx.globalAlpha = A * sm((age - 0.3) / 0.3); fx.textAlign = 'center'; fx.fillStyle = '#f2f3f7';
-    fx.font = `700 11px ${FONT_MONO}`; fx.fillText(`${red ? 'CARTON ROUGE' : 'CARTON JAUNE'}${c.demo ? ' · DÉMO' : ''}`, cx0, H * 0.36 + 88);
+    fx.font = `700 11px ${FONT_MONO}`; fx.fillText(`${red ? (EN ? 'RED CARD' : 'CARTON ROUGE') : (EN ? 'YELLOW CARD' : 'CARTON JAUNE')}${c.demo ? (EN ? ' · DEMO' : ' · DÉMO') : ''}`, cx0, H * 0.36 + 88);
     fx.font = `600 15px ${FONT_TEXT}`; fx.fillText(`${(c.player && (c.player.short || c.player)) || ''}  ${c.label || ''}`, cx0, H * 0.36 + 110); fx.restore();
   }
 }

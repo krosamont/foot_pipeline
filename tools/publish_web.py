@@ -30,6 +30,7 @@ STATIC = ['fabric/index.html', 'fabric/camera.js', 'fabric/js', 'fabric/lib', 'a
 # copied to the root of the site; web/clair/: their light versions (beige theme of data-workers.com/clair/), which open
 # the 3D page with ?theme=light
 PAGES = ['web/index.html', 'web/match.html', 'web/.htaccess', 'web/clair/index.html', 'web/clair/match.html']
+PAGES_EN = ['web/en/index.html', 'web/en/match.html', 'web/en/clair/index.html', 'web/en/clair/match.html']
 MEDIA = re.compile(r'\.\./(assets/media/[^"\']+)')
 ALL_LIST = os.path.join(ROOT, 'data', 'matches', 'matches_all.json')   # every match ever published, all seasons
 
@@ -111,6 +112,10 @@ def main(argv=None):
         copy(os.path.join(ROOT, rel), os.path.join(a.out, rel))
     for page in PAGES:
         copy(os.path.join(ROOT, page), os.path.join(a.out, os.path.relpath(page, 'web')))
+    # English pages (data-workers.com/en/projet/foot_3d/): they load the shared data and the 3D page with ?lang=en
+    en_out = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(a.out))), 'en', 'projet', os.path.basename(os.path.abspath(a.out)))
+    for page in PAGES_EN:
+        copy(os.path.join(ROOT, page), os.path.join(en_out, os.path.relpath(page, 'web/en')))
 
     # every published match is remembered in ALL_LIST; the site's matches.json only lists the latest season
     # (the 3D pages of earlier seasons stay on the server)
