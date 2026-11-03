@@ -17,11 +17,10 @@ SHELL="/bin/bash"
 */15 * * * * cd /home/mjzg4129/data/foot_3d && flock -n data/matches/.run.lock .venv/bin/python -u tools/run_missing.py --no-gcp >> data/matches/run.log 2>&1
 # foot_3d: calendriers FotMob de la saison en cours (heures de coup d envoi a jour)
 5 9 * * * cd /home/mjzg4129/data/foot_3d && .venv/bin/python -m pmd.fixtures >> data/matches/fixtures.log 2>&1
-# foot_3d: controle des matchs joues (recuperes, publies, dans MotherDuck raw et gold), mail a krosamont@data-workers.com si un manque: mardi, mercredi, samedi, dimanche, lundi a 23h30
-30 23 * * 0,1,2,3,6 cd /home/mjzg4129/data/foot_3d && .venv/bin/python tools/check_matches.py >> data/matches/check.log 2>&1
 # foot_3d: (arrete) BigQuery foot_new (match, player, event, metric) : les matchs recuperes (4 h apres le coup d envoi) sont charges au passage suivant, toutes les 15 min, apres run_missing (meme verrou)
 # [arrete 2026-10-28 : plus de Google Cloud, tout est sur le serveur et MotherDuck] 8,23,38,53 * * * * cd /home/mjzg4129/data/foot_3d && flock -n data/matches/.run.lock .venv/bin/python -u tools/load_bigquery.py >> data/matches/bigquery.log 2>&1
-# foot_3d: MotherDuck md:foot : sources raw (fichiers de data/matches/ tels quels, depuis 2025-2026), puis, si des matchs ont ete charges, dbt build de foot_db (bronze, silver, gold, tests) ; toutes les 15 min apres run_missing (meme verrou)
-11,26,41,56 * * * * cd /home/mjzg4129/data/foot_3d && flock -n data/matches/.run.lock tools/lake_update.sh
+# foot_3d: MotherDuck md:foot : sources raw, puis dbt build de foot_db si des matchs ont ete charges ; une fois par jour a 23h30 (offre Free : 10 h de calcul par mois), en attendant au besoin run_missing (meme verrou, jusqu a 1 h)
+# puis le controle des matchs joues (recuperes, publies, dans MotherDuck raw et gold), mail si un manque : dimanche, lundi, mardi, mercredi et samedi
+30 23 * * * cd /home/mjzg4129/data/foot_3d && flock -w 3600 data/matches/.run.lock tools/lake_update.sh; case $(date +\%w) in 0|1|2|3|6) .venv/bin/python tools/check_matches.py >> data/matches/check.log 2>&1;; esac
 # foot_db: fraicheur des sources (avertissement apres 4 jours sans chargement, erreur apres 15), tous les jours a 8h
 0 8 * * * cd /home/mjzg4129/data/foot_db && motherduck_token=$(cat /home/mjzg4129/.motherduck_token) /home/mjzg4129/data/foot_3d/.venv/bin/dbt source freshness --profiles-dir . >> /home/mjzg4129/data/foot_3d/data/matches/freshness.log 2>&1
