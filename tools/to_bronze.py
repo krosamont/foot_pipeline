@@ -1,4 +1,4 @@
-"""Sources of MotherDuck md:foot (schema raw): the files of data/matches/ as they are. The dbt project foot_db
+"""Sources of the football database (~/data/foot.duckdb, $FOOT_DB; schema raw): the files of data/matches/ as they are. The dbt project foot_db
 (github.com/krosamont/foot_db, clone ~/data/foot_db) reads them in its bronze models, then builds silver and gold.
 
     python tools/to_bronze.py               (load the matches not loaded yet, or whose files changed; from 2025-2026)
@@ -17,7 +17,6 @@ _loaded_at:
   _loads            match id -> date of its files, written in the same transaction as the rows
 A new column in the files is added to its table (text). The matches are read 50 at a time (the server limits the
 number of open files) and each batch is one transaction: delete the rows of its matches, insert, record the load.
-Token: ~/.motherduck_token (or $motherduck_token).
 """
 import argparse
 import glob
@@ -31,7 +30,8 @@ import pandas as pd
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MATCHES = os.path.join(ROOT, 'data', 'matches')
-DATABASE = 'foot'
+# the football database: one DuckDB file on the server (MotherDuck dropped on 2026-11-03: too expensive)
+DATABASE = os.environ.get('FOOT_DB', os.path.expanduser('~/data/foot.duckdb'))
 SCHEMA = 'raw'   # the dbt sources (models/bronze/_bronze.yml of foot_db)
 FIRST_SEASON = '2025-2026'
 COMPETITION = {'serie': 'serie-a'}   # folder slug -> name used in the tables (as in BigQuery)
@@ -158,7 +158,7 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('--limit', type=int, default=None, help='only the first N matches to load (test)')
     ap.add_argument('--seasons', nargs='+', default=None, help=f'only these seasons (default: {FIRST_SEASON} and later)')
-    ap.add_argument('--database', default=DATABASE, help='MotherDuck database (md:<name>)')
+    ap.add_argument('--database', default=DATABASE, help='DuckDB file (default: $FOOT_DB or ~/data/foot.duckdb)')
     a = ap.parse_args(argv)
     globals()['DATABASE'] = a.database
 
@@ -167,16 +167,13 @@ def main(argv=None):
                      if glob.glob(os.path.join(d, FILES['events'])) and os.path.exists(os.path.join(d, 'PlayerData.csv')))
     folders = [d for d in folders if (season_of(d) in a.seasons if a.seasons else season_of(d) >= FIRST_SEASON)]
 
-    token()
-    con = duckdb.connect('md:')
-    con.execute(f'create database if not exists {DATABASE}')
-    con.execute(f'use {DATABASE}')
+    con = duckdb.connect(DATABASE)
     con.execute(f'create schema if not exists {SCHEMA}')
     con.execute(f'create table if not exists {SCHEMA}._loads (match_id BIGINT, files_mtime BIGINT, loaded_at TIMESTAMP)')
     con.execute("SET threads = 4; SET memory_limit = '4GB'")
     done = dict(con.execute(f'select match_id, files_mtime from {SCHEMA}._loads').fetchall())
     todo = [d for d in folders if done.get(tag_of(d)[0]) != stamp(d)][:a.limit]
-    print(f'[bronze] {len(folders)} match folders, {len(todo)} to load into md:{DATABASE}', flush=True)
+    print(f'[bronze] {len(folders)} match folders, {len(todo)} to load into {DATABASE}', flush=True)
     t0 = time.time()
     for k in range(0, len(todo), BATCH):
         load_batch(con, todo[k:k + BATCH])

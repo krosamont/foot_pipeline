@@ -1,6 +1,6 @@
 #!/bin/sh
 # Every 15 minutes (cron, under the shared lock data/matches/.run.lock): load the new matches into the sources of
-# MotherDuck (md:foot, schema raw), then, only when matches were loaded, rebuild bronze, silver and gold with the dbt
+# the server database (~/data/foot.duckdb, schema raw), then, only when matches were loaded, rebuild bronze, silver and gold with the dbt
 # project foot_db (clone ~/data/foot_db, updated first) and run its tests.
 #   loader:  tools/to_bronze.py   -> data/matches/bronze.log  (exit 0: matches loaded, 3: nothing new)
 #   dbt:     foot_db scripts/dbt_build.sh -> data/matches/dbt.log

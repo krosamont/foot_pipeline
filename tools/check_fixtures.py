@@ -69,8 +69,7 @@ def agenda():
 
 def motherduck():
     """The matches loaded in md:foot: raw (pipeline) and raw_legacy (old project), with WhoScored team names."""
-    token()
-    con = duckdb.connect('md:foot')
+    con = duckdb.connect(os.environ.get('FOOT_DB', os.path.expanduser('~/data/foot.duckdb')), read_only=True)
     raw = con.sql("""
         select match_id::bigint as match_id, competition, season, cast(fm_utcTime as date) as date,
                ws_home_name as home, ws_away_name as away,

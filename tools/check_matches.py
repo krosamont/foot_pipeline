@@ -99,9 +99,7 @@ def motherduck(season):
     if MotherDuck could not be read."""
     try:
         import duckdb
-        if not os.environ.get('motherduck_token'):
-            os.environ['motherduck_token'] = open(os.path.expanduser('~/.motherduck_token')).read().strip()
-        con = duckdb.connect('md:foot')
+        con = duckdb.connect(os.environ.get('FOOT_DB', os.path.expanduser('~/data/foot.duckdb')), read_only=True)
         ids = lambda sql: {int(r[0]) for r in con.execute(sql, [season]).fetchall()}
         return (ids('select distinct match_id from raw.match_status where season = ?'),
                 ids('select distinct match_id from gold.fct_team_match where season = ?'), None)
