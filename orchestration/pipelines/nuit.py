@@ -31,7 +31,7 @@ PIPELINE = Pipeline('nuit', description='sources, dbt, contrôles, sauvegarde et
           description='chaque match joué : récupéré, publié, dans raw et gold (mail si un manque)'),
     Tache('sauvegarde',
           f'd={SAUVEGARDES}/foot-$(date +%Y%m%d) && rm -rf "$d" && mkdir -p {SAUVEGARDES} && '
-          f'{DUCKDB} -readonly {BASE} -c "SET memory_limit=\'1GB\'; SET threads=2; EXPORT DATABASE \'$d\' (FORMAT parquet, COMPRESSION zstd)" && '
+          f'{DUCKDB} -readonly {BASE} -c "SET memory_limit=\'1GB\'; SET threads=1; SET preserve_insertion_order=false; SET temp_directory=\'$HOME/data/sauvegardes/.tmp\'; EXPORT DATABASE \'$d\' (FORMAT parquet, COMPRESSION zstd)" && '
           f'du -sh "$d" && ls -1d {SAUVEGARDES}/foot-* | head -n -7 | xargs -r rm -rf',
           relances=1, delai_max=3600,   # sans dépendance : sauvegardée même si le chargement échoue (lancée après lui)
           description='EXPORT DATABASE en Parquet (restauration : IMPORT DATABASE), 7 dernières gardées'),
