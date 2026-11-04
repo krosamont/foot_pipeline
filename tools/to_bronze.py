@@ -97,8 +97,8 @@ def status_row(folder):
 def ensure_columns(con, table, cols):
     """Table created when missing; columns it does not have yet added (text)."""
     have = [r[0] for r in con.execute(
-        "select column_name from information_schema.columns where table_catalog = ? and table_schema = ? and table_name = ?",
-        [DATABASE, SCHEMA, table]).fetchall()]
+        "select column_name from information_schema.columns where table_catalog = current_database() and table_schema = ? and table_name = ?",
+        [SCHEMA, table]).fetchall()]
     if not have:
         defs = ', '.join(f'"{c}" {"TIMESTAMP" if c == "_loaded_at" else "BIGINT" if c == "match_id" else "VARCHAR"}' for c in cols)
         con.execute(f'create table {SCHEMA}."{table}" ({defs})')

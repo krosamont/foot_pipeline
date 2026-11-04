@@ -4,7 +4,7 @@
                      ├─> dbt_build ─┬─> fraicheur        (non bloquante)
     maj_foot_db ─────┘              ├─> controle_matchs  (dim, lun, mar, mer, sam)
                                     └─> copie_lecture    (base de la page web en lecture seule)
-    charger_sources ──> sauvegarde (export Parquet de toute la base, 7 dernières gardées)
+    sauvegarde (export Parquet de toute la base, 7 dernières gardées ; même si le chargement échoue)
 
 Extraction et chargement en Python (foot_3d/tools/to_bronze.py) ; toute transformation dans dbt (projet foot_db).
 """
@@ -33,7 +33,7 @@ PIPELINE = Pipeline('nuit', description='sources, dbt, contrôles, sauvegarde et
           f'd={SAUVEGARDES}/foot-$(date +%Y%m%d) && rm -rf "$d" && mkdir -p {SAUVEGARDES} && '
           f'{DUCKDB} -readonly {BASE} -c "SET memory_limit=\'1GB\'; SET threads=2; EXPORT DATABASE \'$d\' (FORMAT parquet, COMPRESSION zstd)" && '
           f'du -sh "$d" && ls -1d {SAUVEGARDES}/foot-* | head -n -7 | xargs -r rm -rf',
-          depend_de=['charger_sources'], relances=1, delai_max=3600,
+          relances=1, delai_max=3600,   # sans dépendance : sauvegardée même si le chargement échoue (lancée après lui)
           description='EXPORT DATABASE en Parquet (restauration : IMPORT DATABASE), 7 dernières gardées'),
     copie_lecture(depend_de=['dbt_build']),
 ])
