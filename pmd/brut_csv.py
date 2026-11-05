@@ -2,7 +2,7 @@
 
 Flattening only, no computation: every list of objects becomes a table of its own (one row per element, `_index` =
 its position in the list, plus the keys of its parent: `_event_index`, `_side`, `teamId`...); a nested object becomes
-columns `<key>_<sub key>`; a short list of values inside an object becomes columns `<key>_0`, `<key>_1`...; a map
+columns `<key>_<sub key>`; a short list (12 at most) inside an object becomes columns `<key>_0`, `<key>_1`...; a map
 (object whose keys are ids or minutes, e.g. per-minute stats) becomes rows (key, value). Values are written as in the
 JSON: text as is, numbers as JSON writes them (1.0 stays 1.0), true / false, null = empty cell.
 Left out (in the JSON files, not in the tables): the parts of the pages that are not about the match itself (FotMob
@@ -21,6 +21,7 @@ import re
 import sys
 
 SIDES = ('home', 'away')
+MAX_LIST = 12   # a list of values inside a row: at most this many columns <key>_0, <key>_1...
 
 
 def value(v):
@@ -45,9 +46,11 @@ def flat(o, prefix='', out=None, skip=()):
         if k in skip:
             continue
         name = f'{prefix}{col(k)}'
-        if isinstance(v, (dict, list)):
-            if len(v) > 12:
-                raise ValueError(f'{name}: {len(v)} elements in one row, make it a table')
+        if isinstance(v, list) and len(v) > MAX_LIST:
+            # a long list has no place in one row: kept as JSON text, and said (it should become a table of its own)
+            print(f'[brut_csv] {name}: list of {len(v)} elements kept as JSON in one cell', file=sys.stderr)
+            out[name] = json.dumps(v, ensure_ascii=False)
+        elif isinstance(v, (dict, list)):
             flat(v, name + '_', out)
         else:
             out[name] = value(v)

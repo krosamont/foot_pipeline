@@ -46,7 +46,10 @@ def run(cfg: MatchConfig):
         raise RuntimeError('WhoScored match centre data could not be fetched (see the messages above)')
     if cfg.cache_dir:
         from . import brut_csv
-        brut_csv.convert(cfg.cache_dir)   # the raw JSON as flat CSV files (raw/csv/), loaded as they are into z_raw
+        try:
+            brut_csv.convert(cfg.cache_dir)   # the raw JSON as flat CSV files (raw/csv/), loaded as they are into z_raw
+        except Exception as e:   # noqa: BLE001  (the match itself is fine; tools/load_raw.py tries again)
+            print(f'[brut_csv] not written: {e!r}')
 
     ns = events.build_events(whoscored, fotmob, cfg.out_dir)
     df_export, momentum_df, match_info_df = export.build_exports(ns['df'], fotmob, ns['hteamName'], ns['ateamName'])

@@ -122,13 +122,18 @@ def main(argv=None):
                      if os.path.exists(os.path.join(d, 'raw', 'whoscored.json'))
                      and os.path.exists(os.path.join(d, 'raw', 'fotmob.json')))
     folders = [d for d in folders if (season_of(d) in a.seasons if a.seasons else season_of(d) >= FIRST_SEASON)]
-    written = 0
+    written, failed = 0, []
     for d in folders:
         if a.rewrite_csv or not glob.glob(os.path.join(csv_dir(d), '*.csv')):
-            brut_csv.convert(os.path.join(d, 'raw'))
-            written += 1
+            try:
+                brut_csv.convert(os.path.join(d, 'raw'))
+                written += 1
+            except Exception as e:   # noqa: BLE001  (one bad file must not stop the others; said in the log)
+                failed.append(d)
+                print(f'[z_raw] CSV files not written for {d}: {e!r}', flush=True)
     if written:
         print(f'[z_raw] CSV files written for {written} matches', flush=True)
+    folders = [d for d in folders if glob.glob(os.path.join(csv_dir(d), '*.csv'))]
 
     con = duckdb.connect(a.database)
     con.execute(f'create schema if not exists {SCHEMA}')
@@ -143,6 +148,8 @@ def main(argv=None):
         load_batch(con, todo[k:k + BATCH])
         print(f'[z_raw] {min(k + BATCH, len(todo))}/{len(todo)} matches ({time.time() - t0:.0f} s)', flush=True)
     # exit code 0 = something loaded (dbt build worth running), 3 = nothing new
+    if failed:
+        print(f'[z_raw] {len(failed)} matches without CSV files (see above)', flush=True)
     return 0 if todo else 3
 
 
