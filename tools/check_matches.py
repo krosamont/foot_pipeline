@@ -5,7 +5,7 @@ is more than --after-hours ago (default 6: the 4 h before it is fetched + 2 h fo
   1. it has a WhoScored id (data/fixtures/whoscored_fixtures.csv, whoscored_schedule_*, whoscored_links_*);
   2. it was fetched (data/matches/<competition>_<season>/<id>_.../ with its exports);
   3. it is on the website (matches.json of ~/data-workers.com/projet/foot_3d/);
-  4. it is in MotherDuck: in the sources (md:foot, raw.match_status) and in gold (gold.fct_team_match, so the dbt build
+  4. it is in the database: in a_staging (a_staging.stg_whoscored_match_status) and in c_marts (c_marts.fct_team_match, so the dbt build
      after its load went through).
 When something is missing, an e-mail goes to --to (sendmail); the same list is sent again only after 20 h (so once per evening run), and a short
 "back to normal" e-mail follows when everything is there again (state in data/matches/alert_state.json).
@@ -86,7 +86,7 @@ def report(season, after_hours):
             elif ws not in site:
                 problems.append(f'{what} : récupéré mais pas publié sur le site')
             elif md_error is None and ws not in in_raw:
-                problems.append(f'{what} : absent de MotherDuck (raw), voir data/matches/bronze.log')
+                problems.append(f'{what} : absent de la base (a_staging), voir ~/data/pipelines/logs/')
             elif md_error is None and ws not in in_gold:
                 problems.append(f'{what} : dans MotherDuck (raw) mais pas en gold, voir data/matches/dbt.log')
     if md_error is not None:
@@ -95,14 +95,14 @@ def report(season, after_hours):
 
 
 def motherduck(season):
-    """WhoScored ids of `season` in md:foot: sources (raw.match_status) and gold (gold.fct_team_match), and the error
+    """WhoScored ids of `season` in the database: a_staging (stg_whoscored_match_status) and c_marts (fct_team_match), and the error
     if MotherDuck could not be read."""
     try:
         import duckdb
         con = duckdb.connect(os.environ.get('FOOT_DB', os.path.expanduser('~/data/foot.duckdb')), read_only=True)
         ids = lambda sql: {int(r[0]) for r in con.execute(sql, [season]).fetchall()}
-        return (ids('select distinct match_id from raw.match_status where season = ?'),
-                ids('select distinct match_id from gold.fct_team_match where season = ?'), None)
+        return (ids('select distinct match_id from a_staging.stg_whoscored_match_status where season = ?'),
+                ids('select distinct match_id from c_marts.fct_team_match where season = ?'), None)
     except Exception as e:   # noqa: BLE001  (reported in the e-mail rather than crashing the check)
         return set(), set(), str(e)
 

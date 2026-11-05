@@ -1,20 +1,22 @@
-"""Sources of the football database (~/data/foot.duckdb, $FOOT_DB; schema raw): the files of data/matches/ as they are. The dbt project foot_db
-(github.com/krosamont/foot_db, clone ~/data/foot_db) reads them in its bronze models, then builds silver and gold.
+"""Match files of data/matches/ -> layer a_staging of the football database (~/data/foot.duckdb, $FOOT_DB), as they are.
+The dbt project foot_db (github.com/krosamont/foot_db, clone ~/data/foot_db) reads them as sources and builds
+b_intermediate and c_marts.
 
     python tools/to_bronze.py               (load the matches not loaded yet, or whose files changed; from 2025-2026)
     python tools/to_bronze.py --limit 3     (test)
     python tools/to_bronze.py --seasons 2026-2027
 
-One table raw.<name> per kind of file, every value kept as text (as in the file; silver casts them), plus match_id (WhoScored id),
+One table a_staging.<name> per kind of file, every value kept as text (as in the file; b_intermediate casts them), plus match_id (WhoScored id),
 competition ('premier-league', ..., 'serie-a'), season ('2026-2027'), data_convention ('foot_3d'), _source_file and
 _loaded_at:
-  events            <match>_qualifiers_expanded.csv   (one row per WhoScored event; x, y in metres, 105 x 68)
-  whoscored_players PlayerData.csv                    ('stats' kept as written)
-  fotmob_players    <match>_players.csv
-  match_info        <match>_match_info.csv            (one row per side)
-  momentum          <match>_momentum.csv
-  match_status      raw/whoscored.json + raw/fotmob.json: referee, attendance, scores, managers, FotMob status
-  _loads            match id -> date of its files, written in the same transaction as the rows
+  stg_whoscored_event         <match>_qualifiers_expanded.csv   (one row per WhoScored event; x, y in metres, 105 x 68)
+  stg_whoscored_player        PlayerData.csv                    ('stats' kept as written)
+  stg_fotmob_player           <match>_players.csv
+  stg_fotmob_match_info       <match>_match_info.csv            (one row per side)
+  stg_fotmob_momentum         <match>_momentum.csv
+  stg_whoscored_match_status  raw/whoscored.json + raw/fotmob.json: referee, attendance, scores, managers, FotMob status
+and z_technique.stg_pipeline_load: match id -> date of its files, written in the same transaction as the rows (the
+loader's own bookkeeping: which matches are new or changed; read by no model)
 A new column in the files is added to its table (text). The matches are read 50 at a time (the server limits the
 number of open files) and each batch is one transaction: delete the rows of its matches, insert, record the load.
 """
@@ -32,17 +34,18 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MATCHES = os.path.join(ROOT, 'data', 'matches')
 # the football database: one DuckDB file on the server (MotherDuck dropped on 2026-11-03: too expensive)
 DATABASE = os.environ.get('FOOT_DB', os.path.expanduser('~/data/foot.duckdb'))
-SCHEMA = 'raw'   # the dbt sources (models/bronze/_bronze.yml of foot_db)
+SCHEMA = 'a_staging'   # raw data layer, the dbt sources (models/a_staging/_a_staging.yml of foot_db)
+LOADS = 'z_technique.stg_pipeline_load'   # technical schema: the loader's bookkeeping
 FIRST_SEASON = '2025-2026'
 COMPETITION = {'serie': 'serie-a'}   # folder slug -> name used in the tables (as in BigQuery)
 CONVENTION = 'foot_3d'
 BATCH = 50
 FILES = {   # table -> file pattern in a match folder
-    'events': '*_qualifiers_expanded.csv',
-    'whoscored_players': 'PlayerData.csv',
-    'fotmob_players': '*_players.csv',
-    'match_info': '*_match_info.csv',
-    'momentum': '*_momentum.csv',
+    'stg_whoscored_event': '*_qualifiers_expanded.csv',
+    'stg_whoscored_player': 'PlayerData.csv',
+    'stg_fotmob_player': '*_players.csv',
+    'stg_fotmob_match_info': '*_match_info.csv',
+    'stg_fotmob_momentum': '*_momentum.csv',
 }
 TAGS = ['match_id', 'competition', 'season', 'data_convention', '_source_file', '_loaded_at']
 
@@ -142,12 +145,12 @@ def load_batch(con, folders):
         rows['_loaded_at'] = pd.Timestamp.now()
         con.register('_status', rows)
         con.execute('create or replace temp table _new as select * replace (match_id::BIGINT as match_id) from _status')
-        ensure_columns(con, 'match_status', [r[0] for r in con.execute('describe _new').fetchall()])
-        con.execute(f'delete from {SCHEMA}.match_status where match_id in (select unnest(?::BIGINT[]))', [mids])
-        con.execute(f'insert into {SCHEMA}.match_status by name select * from _new')
+        ensure_columns(con, 'stg_whoscored_match_status', [r[0] for r in con.execute('describe _new').fetchall()])
+        con.execute(f'delete from {SCHEMA}.stg_whoscored_match_status where match_id in (select unnest(?::BIGINT[]))', [mids])
+        con.execute(f'insert into {SCHEMA}.stg_whoscored_match_status by name select * from _new')
         con.unregister('_status')
-        con.execute(f'delete from {SCHEMA}._loads where match_id in (select unnest(?::BIGINT[]))', [mids])
-        con.executemany(f'insert into {SCHEMA}._loads values (?, ?, now()::timestamp)', [[tag_of(f)[0], stamp(f)] for f in folders])
+        con.execute(f'delete from {LOADS} where match_id in (select unnest(?::BIGINT[]))', [mids])
+        con.executemany(f'insert into {LOADS} values (?, ?, now()::timestamp)', [[tag_of(f)[0], stamp(f)] for f in folders])
         con.execute('commit')
     except Exception:
         con.execute('rollback')
@@ -164,14 +167,15 @@ def main(argv=None):
 
     season_of = lambda d: os.path.basename(os.path.dirname(os.path.normpath(d))).rsplit('_', 1)[1]
     folders = sorted(d for d in glob.glob(os.path.join(MATCHES, '*_*-*', '*_*', ''))
-                     if glob.glob(os.path.join(d, FILES['events'])) and os.path.exists(os.path.join(d, 'PlayerData.csv')))
+                     if glob.glob(os.path.join(d, FILES['stg_whoscored_event'])) and os.path.exists(os.path.join(d, 'PlayerData.csv')))
     folders = [d for d in folders if (season_of(d) in a.seasons if a.seasons else season_of(d) >= FIRST_SEASON)]
 
     con = duckdb.connect(DATABASE)
     con.execute(f'create schema if not exists {SCHEMA}')
-    con.execute(f'create table if not exists {SCHEMA}._loads (match_id BIGINT, files_mtime BIGINT, loaded_at TIMESTAMP)')
+    con.execute('create schema if not exists z_technique')
+    con.execute(f'create table if not exists {LOADS} (match_id BIGINT, files_mtime BIGINT, loaded_at TIMESTAMP)')
     con.execute("SET threads = 4; SET memory_limit = '4GB'")
-    done = dict(con.execute(f'select match_id, files_mtime from {SCHEMA}._loads').fetchall())
+    done = dict(con.execute(f'select match_id, files_mtime from {LOADS}').fetchall())
     todo = [d for d in folders if done.get(tag_of(d)[0]) != stamp(d)][:a.limit]
     print(f'[bronze] {len(folders)} match folders, {len(todo)} to load into {DATABASE}', flush=True)
     t0 = time.time()

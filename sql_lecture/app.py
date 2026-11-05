@@ -145,7 +145,7 @@ def index():
             except ValueError as e:
                 erreur = str(e)
     st, maj = maj_copie()
-    return render_template('index.html', sql=sql or 'select * from gold.\nlimit 100', resultat=resultat, erreur=erreur,
+    return render_template('index.html', sql=sql or 'select * from c_marts.\nlimit 100', resultat=resultat, erreur=erreur,
                            arbre=schema((st.st_mtime, st.st_size)), maj=maj, max_lignes=MAX_LIGNES, jeton=jeton())
 
 

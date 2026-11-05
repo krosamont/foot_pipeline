@@ -12,9 +12,9 @@
 </style>
 <div class="grille">
 <aside class="schema">
-  <p class="info">Schémas — clic sur une table pour l'interroger. bronze, silver et gold sont des vues dbt ; raw, raw_legacy et comparaison_sport sont les tables chargées.</p>
+  <p class="info">Schémas — clic sur une table pour l'interroger. a_staging : toutes les données brutes (tables chargées) ; b_intermediate et c_marts : les vues dbt.</p>
   {% for sch, tables in arbre.items() %}
-  <details {% if sch in ('gold',) %}open{% endif %}><summary><b>{{ sch }}</b> ({{ tables|length }})</summary>
+  <details {% if sch in ('c_marts',) %}open{% endif %}><summary><b>{{ sch }}</b> ({{ tables|length }})</summary>
     {% for t, d in tables.items() %}
     <details><summary><span class="t" data-q="select * from {{ sch }}.{{ t }} limit 100">{{ t }}</span> {% if d.type == 'vue' %}<span class="vue">vue</span>{% endif %}</summary>
       <ul>{% for c, ty in d.colonnes %}<li>{{ c }} <span class="vue">{{ ty|lower }}</span></li>{% endfor %}</ul>

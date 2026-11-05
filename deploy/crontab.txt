@@ -19,8 +19,8 @@ SHELL="/bin/bash"
 5 9 * * * cd /home/mjzg4129/data/foot_3d && .venv/bin/python -m pmd.fixtures >> data/matches/fixtures.log 2>&1
 # foot_3d: (arrete) BigQuery foot_new (match, player, event, metric) : les matchs recuperes (4 h apres le coup d envoi) sont charges au passage suivant, toutes les 15 min, apres run_missing (meme verrou)
 # [arrete 2026-10-28 : plus de Google Cloud, tout est sur le serveur et MotherDuck] 8,23,38,53 * * * * cd /home/mjzg4129/data/foot_3d && flock -n data/matches/.run.lock .venv/bin/python -u tools/load_bigquery.py >> data/matches/bigquery.log 2>&1
-# foot_3d: MotherDuck md:foot : sources raw, puis dbt build de foot_db si des matchs ont ete charges ; une fois par jour a 23h30 (offre Free : 10 h de calcul par mois), en attendant au besoin run_missing (meme verrou, jusqu a 1 h)
-# puis le controle des matchs joues (recuperes, publies, dans MotherDuck raw et gold), mail si un manque : dimanche, lundi, mardi, mercredi et samedi
+# foot_3d: base ~/data/foot.duckdb (a_staging, b_intermediate, c_marts) : pipelines journee (chargement + copie de lecture)
+# et nuit (chargement, dbt build, controles, sauvegarde, copie de lecture), orchestration/ du depot foot_pipeline
 45 9-21/2 * * * cd /home/mjzg4129/data/foot_3d && .venv/bin/python -m orchestration run journee >> /home/mjzg4129/data/pipelines/cron.log 2>&1
 30 23 * * * cd /home/mjzg4129/data/foot_3d && .venv/bin/python -m orchestration run nuit >> /home/mjzg4129/data/pipelines/cron.log 2>&1
 # foot_db: fraicheur des sources (avertissement apres 4 jours sans chargement, erreur apres 15), tous les jours a 8h
