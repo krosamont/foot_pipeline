@@ -12,7 +12,7 @@
 </style>
 <div class="grille">
 <aside class="schema">
-  <p class="info">Schémas — clic sur une table pour l'interroger. a_staging : toutes les données brutes (tables chargées) ; b_intermediate et c_marts : les vues dbt.</p>
+  <p class="info">Schémas — clic sur une table pour l'interroger. z_raw : toutes les données brutes, telles que chargées ; a_staging : une vue par table brute ; b_intermediate et c_marts : les tables calculées par dbt.</p>
   {% for sch, tables in arbre.items() %}
   <details {% if sch in ('c_marts',) %}open{% endif %}><summary><b>{{ sch }}</b> ({{ tables|length }})</summary>
     {% for t, d in tables.items() %}

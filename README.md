@@ -20,25 +20,27 @@ Everything that runs on the o2switch server (`~/data/foot_3d`), up to the DuckDB
 | Step | Code | Cron |
 |---|---|---|
 | FotMob calendars of the current season | `pmd/fixtures.py` | every day at 9:05 |
-| Download and compute each match, 4 h after kick-off | `tools/run_missing.py` (pipeline `pmd/`) | every 15 min |
+| Download and compute each match, 4 h after kick-off; the raw JSON (`raw/whoscored.json`, `raw/fotmob.json`) also written as flat CSV files (`raw/csv/`, `pmd/brut_csv.py`) | `tools/run_missing.py` (pipeline `pmd/`) | every 15 min |
 | 3D portrait of the match on data-workers.com | `tools/publish_web.py`, `fabric/`, `web/` | after each match |
-| Pipeline `journee` (see below): new matches into the raw data layer (schema `a_staging`), then the read-only copy if anything was loaded | `orchestration/`, `tools/to_bronze.py` | every 2 h, 9:45 to 21:45 |
-| Pipeline `nuit` (see below): sources, dbt build of [foot_db](https://github.com/krosamont/foot_db), freshness, match check, Parquet backup, read-only copy | `orchestration/`, `tools/to_bronze.py`, `tools/check_matches.py` | 23:30 |
+| Pipeline `journee` (see below): new matches into the raw data layer (schema `z_raw`), incremental dbt build, then the read-only copy, if anything was loaded | `orchestration/`, `tools/load_raw.py` | every 2 h, 9:45 to 21:45 |
+| Pipeline `nuit` (see below): sources, dbt build of [foot_db](https://github.com/krosamont/foot_db), freshness, match check, Parquet backup, read-only copy | `orchestration/`, `tools/load_raw.py`, `tools/check_matches.py` | 23:30 |
 | Check that every match of each past season is there (rules per competition) | `tools/check_fixtures.py` | by hand |
-| Old project seasons 2020-2021 to 2024-2025 (Parquet) -> `foot.duckdb`, tables `a_staging.stg_whoscored_*_legacy` | `tools/load_legacy.py` | once (2026-10-27) |
+| Old project seasons 2020-2021 to 2024-2025 (Parquet) -> `foot.duckdb`, tables `z_raw.whoscored_*_legacy` | `tools/load_legacy.py` | once (2026-10-27) |
 
 No Google Cloud since 2026-10-28 (`run_missing.py --no-gcp`; the BigQuery and GCP cron jobs are commented out):
 no MotherDuck since 2026-11-03: everything is on the server, in one DuckDB file. The full crontab is in `deploy/crontab.txt`. Data, downloads, generated files and environments stay on the server
-(`.gitignore`). The database has three layers: `a_staging` (every raw data as tables, written by the loaders, named
-`stg_<source>[_<country>]_<subject>`), `b_intermediate` and `c_marts` (dbt views, separate repository foot_db); the
-loader's bookkeeping (`stg_pipeline_load`: which matches are new or changed) is in the technical schema `z_technique`.
+(`.gitignore`). The database: `z_raw` (every raw data as tables, values unchanged, written by the loaders, named
+`<source>[_<country>]_<subject>`: for a match, one table per list of its WhoScored and FotMob JSON), then the dbt
+layers of the separate repository foot_db: `a_staging` (one view `stg_<table>` per raw table), `b_intermediate` and
+`c_marts` (tables, the per-match ones incremental); the loader's bookkeeping (`pipeline_load`: which matches are new
+or changed) is in the technical schema `z_technique`.
 
 ## Orchestration (`orchestration/`)
 
 The server allows no daemon (no Airflow, no listening port), so pipelines are small DAGs run by cron:
 `python -m orchestration run nuit`. Each task is a shell command with dependencies, retries, a timeout, an optional
 condition (e.g. weekdays) and a blocking / non-blocking flag; a task whose blocking dependency failed is skipped.
-A task can end on `rien` (its `code_rien`, e.g. 3 for to_bronze.py: nothing new); a `seulement_si_nouveau` task whose
+A task can end on `rien` (its `code_rien`, e.g. 3 for load_raw.py: nothing new); a `seulement_si_nouveau` task whose
 dependencies all ended on `rien` is skipped (like Airflow's ShortCircuitOperator). `journee` and `nuit` share the lock
 `base_foot`: two writes to the database never run at once, the second waits.
 Runs are recorded in `~/data/pipelines/runs.sqlite`, one log per task in `~/data/pipelines/logs/`, and an e-mail is sent
@@ -55,7 +57,7 @@ when a task fails. `python -m orchestration liste` shows the DAG, `python -m orc
 b_intermediate and c_marts are views, so loaded matches are visible at once; the day pipeline only refreshes the copy
 read by the SQL page (about 5 min for 3 GB). dbt tests, backup and checks stay at night.
 
-Extract and load are Python (`tools/to_bronze.py`); every transformation is a dbt model in foot_db.
+Extract and load are Python (`tools/load_raw.py`, values unchanged); every transformation is a dbt model in foot_db.
 Restore a backup: `duckdb new.duckdb -c "IMPORT DATABASE '~/data/sauvegardes/foot-YYYYMMDD'"`.
 
 ## Read-only SQL page (`sql_lecture/`)

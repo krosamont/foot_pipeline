@@ -4,15 +4,23 @@ from orchestration.runner import Tache
 BASE = '~/data/foot.duckdb'
 LECTURE = '~/data/lecture/foot.duckdb'   # même nom de fichier : les vues dbt visent le catalogue « foot »
 PY = '~/data/foot_3d/.venv/bin/python'
+DBT = '~/data/foot_3d/.venv/bin/dbt'
 DUCKDB = '~/bin/duckdb'   # mémoire et threads limités dans les commandes : o2switch tue les processus trop gourmands
 
 
 def charger_sources(**kw):
-    """Nouveaux matchs -> tables raw. to_bronze.py sort avec le code 3 quand il n'y a rien de nouveau (statut « rien »).
-    Sous le verrou de run_missing.py (cron */15) pour ne pas lire un match en cours d'écriture."""
-    return Tache('charger_sources', f'flock -w 3600 data/matches/.run.lock {PY} -u tools/to_bronze.py',
+    """Nouveaux matchs -> tables brutes (z_raw). load_raw.py sort avec le code 3 quand il n'y a rien de nouveau (statut
+    « rien »). Sous le verrou de run_missing.py (cron */15) pour ne pas lire un match en cours d'écriture."""
+    return Tache('charger_sources', f'flock -w 3600 data/matches/.run.lock {PY} -u tools/load_raw.py',
                  dossier='~/data/foot_3d', code_rien=3, relances=2, attente_relance=300, delai_max=3600,
-                 description='nouveaux matchs (fichiers de data/matches/) -> tables raw', **kw)
+                 description='nouveaux matchs (JSON de data/matches/ en CSV) -> tables z_raw', **kw)
+
+
+def dbt_build(**kw):
+    """dbt build de foot_db : vues a_staging, tables b_intermediate et c_marts (incrémentales : seuls les matchs chargés
+    depuis le passage précédent sont recalculés), tests."""
+    return Tache('dbt_build', f'DBT={DBT} scripts/dbt_build.sh', dossier='~/data/foot_db', relances=1, delai_max=3600,
+                 description='a_staging (vues), b_intermediate et c_marts (tables incrémentales), tests', **kw)
 
 
 def copie_lecture(**kw):

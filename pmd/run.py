@@ -44,6 +44,9 @@ def run(cfg: MatchConfig):
     whoscored = _cached(cfg.cache_dir, 'whoscored.json', lambda: fetch.fetch_whoscored(cfg.whoscored_match_id, cfg.proxy))
     if not isinstance(whoscored, dict) or 'events' not in whoscored:
         raise RuntimeError('WhoScored match centre data could not be fetched (see the messages above)')
+    if cfg.cache_dir:
+        from . import brut_csv
+        brut_csv.convert(cfg.cache_dir)   # the raw JSON as flat CSV files (raw/csv/), loaded as they are into z_raw
 
     ns = events.build_events(whoscored, fotmob, cfg.out_dir)
     df_export, momentum_df, match_info_df = export.build_exports(ns['df'], fotmob, ns['hteamName'], ns['ateamName'])

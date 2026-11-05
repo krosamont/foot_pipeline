@@ -11,7 +11,7 @@ flock -w 7200 data/matches/.run.lock sh -c "
   .venv/bin/python -u tools/run_missing.py --seasons 2020/2021 --max-tries 3 --no-publish --no-gcp
   .venv/bin/python -u tools/run_missing.py --seasons 2025/2026 --max-tries 6 --no-gcp
   echo === \$(date -u +%FT%T) load raw
-  .venv/bin/python -u tools/to_bronze.py --seasons 2020-2021 2021-2022 2022-2023 2023-2024 2025-2026
+  .venv/bin/python -u tools/load_raw.py --seasons 2020-2021 2021-2022 2022-2023 2023-2024 2025-2026
   echo === \$(date -u +%FT%T) dbt build
   cd /home/mjzg4129/data/foot_db && git pull -q --ff-only && DBT=$HERE/.venv/bin/dbt scripts/dbt_build.sh
   echo === \$(date -u +%FT%T) done
