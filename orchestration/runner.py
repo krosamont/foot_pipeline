@@ -37,7 +37,7 @@ class Tache:
     bloquante: bool = True                         # False : un échec est signalé mais ne fait pas échouer le pipeline
     condition: Optional[Callable[[], bool]] = None # False -> tâche sautée (ex. : seulement certains jours)
     code_rien: Optional[int] = None                # ce code de sortie = réussite sans rien de nouveau (statut « rien »)
-    seulement_si_nouveau: bool = False             # sautée si toutes ses dépendances ont fini sur « rien »
+    seulement_si_nouveau: bool = False             # sautée si toutes ses dépendances ont fini sur « rien » (ou ont été sautées pour cela)
     description: str = ''
 
 
@@ -135,7 +135,8 @@ def executer(p: Pipeline):
             statuts[t.nom] = 'sautee_dependance'
         elif t.condition and not t.condition():
             statuts[t.nom] = 'sautee'
-        elif t.seulement_si_nouveau and t.depend_de and all(statuts.get(d) == 'rien' for d in t.depend_de):
+        elif t.seulement_si_nouveau and t.depend_de and all(statuts.get(d) in ('rien', 'sautee_rien_de_nouveau')
+                                                            for d in t.depend_de):
             statuts[t.nom] = 'sautee_rien_de_nouveau'
         else:
             code, tentative = None, 0

@@ -13,5 +13,5 @@ PIPELINE = Pipeline('journee', description='nouveaux matchs dans la base et copi
                     verrou='base_foot', attente_verrou=1800, taches=[
     charger_sources(),
     dbt_build(depend_de=['charger_sources'], seulement_si_nouveau=True),
-    copie_lecture(depend_de=['dbt_build']),
+    copie_lecture(depend_de=['dbt_build'], seulement_si_nouveau=True),
 ])
