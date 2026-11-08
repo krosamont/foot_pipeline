@@ -1,15 +1,22 @@
 <!doctype html>
 <html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow"><title>Base foot · connexion</title>
+<link rel="icon" href="{{ url_for('static', filename='logo.ico') }}">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
-:root{--papier:#ebe7de;--encre:#1d1b19;--rouge:#c2393f}
-@media (prefers-color-scheme:dark){:root{--papier:#1d1b19;--encre:#ebe7de}}
-body{margin:0;min-height:100vh;display:grid;place-items:center;background:var(--papier);color:var(--encre);font:16px Georgia,serif}
-form{display:grid;gap:12px;padding:16px;width:min(320px,100% - 32px)}
-input,button{font:inherit;padding:8px 10px;border-radius:4px;border:1px solid var(--encre)}
-button{background:var(--encre);color:var(--papier);cursor:pointer}
-p{color:var(--rouge);margin:0}
+:root{--brand:#2dc4c2;--brand-hover:#26a6a5;--bg:#070b15;--panel:#0f172a;--line:#1e293b;--text:#f8fafc;--muted:#94a3b8;--danger:#f87171}
+body{margin:0;min-height:100vh;display:grid;place-items:center;background:radial-gradient(circle at 50% 0%,#111827 0%,var(--bg) 70%);
+  color:var(--text);font:15px Inter,-apple-system,sans-serif}
+form{display:grid;gap:14px;padding:28px;width:min(340px,100% - 32px);background:var(--panel);border:1px solid var(--line);
+  border-radius:16px;text-align:center}
+img{width:72px;height:72px;margin:0 auto;border-radius:14px;box-shadow:0 0 30px rgba(45,196,194,.25)}
+h1{font-size:19px;font-weight:800;margin:0}h1 span{color:var(--brand)}
+input,button{font:inherit;padding:10px 12px;border-radius:8px}
+input{background:var(--bg);color:var(--text);border:1px solid var(--line)}input:focus{outline:none;border-color:var(--brand)}
+button{background:var(--brand);color:var(--bg);border:0;font-weight:600;cursor:pointer}button:hover{background:var(--brand-hover)}
+p{color:var(--danger);margin:0;font-size:14px}
 </style></head>
-<body><form method="post"><h1 style="font-size:20px;margin:0">Base foot · SQL</h1>
+<body><form method="post"><img src="{{ url_for('static', filename='logo.png') }}" alt="Data Workers">
+<h1>Base foot <span>·</span> SQL</h1>
 <input type="password" name="mot_de_passe" placeholder="mot de passe" autofocus autocomplete="current-password">
 <button>Entrer</button>{% if erreur %}<p>{{ erreur }}</p>{% endif %}</form></body></html>

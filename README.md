@@ -66,7 +66,9 @@ https://data-workers.com/sql — Flask app run by Passenger (cPanel Python app, 
 password hashed in `~/.config/sql_lecture/config.json`. It queries the read-only copy (refreshed after each load), never the production file, with
 `read_only`, `enable_external_access=false`, `lock_configuration=true`, only SELECT / EXPLAIN statements (DESCRIBE, SHOW,
 SUMMARIZE and WITH parse as SELECT), one statement at a time, a 60 s timeout and a row limit. Schema browser, CSV export
-and a page with the pipeline runs. Deploy: copy `sql_lecture/` to `~/data/sql_lecture/` and
+and a page with the pipeline runs. Interface in the data-workers.com theme (logo, navy and teal, Inter): several
+query tabs kept in the browser between sessions (localStorage), CodeMirror editor with line numbers and completion of
+tables and columns, queries run without reloading the page (`/executer`, JSON; the selection only when there is one). Deploy: copy `sql_lecture/` to `~/data/sql_lecture/` and
 `cloudlinux-selector restart --json --interpreter python --app-root data/sql_lecture`.
 
 # Football match pipeline + 3D portrait

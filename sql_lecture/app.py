@@ -8,6 +8,8 @@ chargement de 23h30 n'est jamais bloqué. Aucune modification n'est possible, à
      et lock_configuration=true (la requête ne peut pas changer ces réglages) ;
   4. la copie n'est pas la base de production : même en cas de faille, la vraie base n'est pas touchée.
 Accès par mot de passe (haché dans ~/.config/sql_lecture/config.json), délai maximum et nombre de lignes limités.
+Interface : onglets de requêtes gardés dans le navigateur (localStorage), éditeur CodeMirror (numéros de ligne,
+autocomplétion des tables et colonnes), exécution sans recharger la page (/executer, JSON).
 """
 import csv
 import functools
@@ -20,7 +22,7 @@ import threading
 import time
 
 import duckdb
-from flask import Flask, Response, redirect, render_template, request, session, url_for
+from flask import Flask, Response, jsonify, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash
 
 CONFIG = json.load(open(os.path.expanduser('~/.config/sql_lecture/config.json')))
@@ -134,19 +136,34 @@ def maj_copie():
 @app.route('/', methods=['GET', 'POST'])
 @connecte
 def index():
-    sql = request.values.get('sql', '').strip()
-    resultat, erreur = None, None
-    if sql:
-        if request.method == 'POST' and not hmac.compare_digest(request.form.get('jeton', ''), jeton()):
-            erreur = 'session expirée, relancez la requête'
-        else:
-            try:
-                resultat = executer(sql, MAX_LIGNES)
-            except ValueError as e:
-                erreur = str(e)
     st, maj = maj_copie()
-    return render_template('index.html', sql=sql or 'select * from c_marts.\nlimit 100', resultat=resultat, erreur=erreur,
-                           arbre=schema((st.st_mtime, st.st_size)), maj=maj, max_lignes=MAX_LIGNES, jeton=jeton())
+    arbre = schema((st.st_mtime, st.st_size))
+    tables = {f'{sch}.{t}': [c for c, _ in d['colonnes']] for sch, ts in arbre.items() for t, d in ts.items()}
+    return render_template('index.html', sql=request.values.get('sql', '').strip(), arbre=arbre, tables=tables,
+                           maj=maj, max_lignes=MAX_LIGNES, delai=DELAI, jeton=jeton())
+
+
+def valeur(v):
+    """Une valeur DuckDB en JSON : nombres, texte, booléens et null tels quels ; le reste (dates, décimaux, listes...)
+    en texte, comme l'affichait la page."""
+    if v is None or isinstance(v, (bool, int, float, str)):
+        return v if not (isinstance(v, float) and v != v) else None
+    return str(v)
+
+
+@app.route('/executer', methods=['POST'])
+@connecte
+def executer_json():
+    """Exécute la requête d'un onglet ; réponse JSON (colonnes, lignes, tronque, duree) ou (erreur)."""
+    donnees = request.get_json(silent=True) or {}
+    if not hmac.compare_digest(request.headers.get('X-Jeton', ''), jeton()):
+        return jsonify(erreur='session expirée, rechargez la page'), 403
+    try:
+        colonnes, lignes, tronque, duree = executer(str(donnees.get('sql', '')), MAX_LIGNES)
+    except ValueError as e:
+        return jsonify(erreur=str(e))
+    return jsonify(colonnes=colonnes, lignes=[[valeur(v) for v in l] for l in lignes], tronque=tronque,
+                   duree=round(duree, 3))
 
 
 @app.route('/csv', methods=['POST'])
