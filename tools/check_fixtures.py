@@ -73,17 +73,17 @@ def motherduck():
     raw = con.sql("""
         select f.match_id, f.competition, f.season, cast(f.status_utcTime as date) as date,
                h.name as home, a.name as away, h.teamId::bigint as home_id, a.teamId::bigint as away_id
-        from z_raw.fotmob_match as f
-        left join z_raw.whoscored_team as h on h.match_id = f.match_id and h._side = 'home'
-        left join z_raw.whoscored_team as a on a.match_id = f.match_id and a._side = 'away'""").df()
+        from z_raw.fm_match as f
+        left join z_raw.ws_team as h on h.match_id = f.match_id and h._side = 'home'
+        left join z_raw.ws_team as a on a.match_id = f.match_id and a._side = 'away'""").df()
     legacy = con.sql("""
         select m.match_id, m.competition, m.season, cast(m.date as date) as date,
                max(case when p.field = 'home' then p.team end) as home,
                max(case when p.field = 'away' then p.team end) as away,
                max(case when p.field = 'home' then p.teamId end) as home_id,
                max(case when p.field = 'away' then p.teamId end) as away_id
-        from z_raw.whoscored_match_legacy as m
-        left join z_raw.whoscored_player_legacy as p on p.match_id = m.match_id
+        from z_raw.ws_match_legacy as m
+        left join z_raw.ws_player_legacy as p on p.match_id = m.match_id
         group by all""").df()
     raw['source'], legacy['source'] = 'raw', 'raw_legacy'
     d = pd.concat([raw, legacy]).drop_duplicates('match_id')   # raw first: it wins when both have a match

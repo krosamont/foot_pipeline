@@ -10,8 +10,8 @@ values unchanged. The dbt project foot_db (github.com/krosamont/foot_db, clone ~
 
 A match folder has the JSON as downloaded (raw/whoscored.json, raw/fotmob.json) and the same data as flat CSV files
 (raw/csv/<table>.csv, pmd/brut_csv.py: one file per list of the JSON, no computation), written at download; a match
-that has none yet gets them here. Each CSV file -> table z_raw.<table> (whoscored_event, whoscored_event_qualifier,
-fotmob_shot...), every value as text, plus match_id (WhoScored id), competition ('premier-league', ..., 'serie-a'),
+that has none yet gets them here. Each CSV file -> table z_raw.<table> (whoscored_event.csv -> ws_event, ws_event_qualifier,
+fm_shot...), every value as text, plus match_id (WhoScored id), competition ('premier-league', ..., 'serie-a'),
 season ('2026-2027'), _source_file and _loaded_at (the same time for every table of a batch).
 z_technique.pipeline_load: match id -> date of its CSV files, written in the same transaction as the rows (the
 loader's bookkeeping: which matches are new or changed; read by no model).
@@ -39,7 +39,15 @@ LOADS = 'z_technique.pipeline_load'   # technical schema: the loader's bookkeepi
 FIRST_SEASON = '2025-2026'   # before: the old project's seasons (tools/load_legacy.py)
 COMPETITION = {'serie': 'serie-a'}   # folder slug -> name used in the tables
 BATCH = 50
-PREFIXES = ('whoscored_', 'fotmob_')   # the match tables (not the _legacy ones)
+PREFIXES = ('ws_', 'fm_')   # the match tables (not the _legacy ones)
+SHORT = {'whoscored_': 'ws_', 'fotmob_': 'fm_'}   # CSV file whoscored_event.csv -> table z_raw.ws_event
+
+
+def table_of(csv_name):
+    for long, short in SHORT.items():
+        if csv_name.startswith(long):
+            return short + csv_name[len(long):]
+    return csv_name
 
 
 def tag_of(folder):
@@ -83,15 +91,16 @@ def match_tables(con):
 def load_batch(con, folders):
     tagged = [(f, *tag_of(f)) for f in folders]
     mids = [t[1] for t in tagged]
-    tables = sorted({os.path.basename(p)[:-4] for f in folders for p in glob.glob(os.path.join(csv_dir(f), '*.csv'))})
+    names = sorted({os.path.basename(p)[:-4] for f in folders for p in glob.glob(os.path.join(csv_dir(f), '*.csv'))})
     con.execute('begin transaction')
     try:
         loaded_at = con.execute('select now()::timestamp').fetchone()[0]
         for table in match_tables(con):   # a match reloaded loses its old rows everywhere (a list may now be empty)
             con.execute(f'delete from {SCHEMA}."{table}" where match_id in (select unnest(?::BIGINT[]))', [mids])
-        for table in tables:
-            files = [(os.path.join(csv_dir(f), f'{table}.csv'), mid, comp, season) for f, mid, comp, season in tagged
-                     if os.path.exists(os.path.join(csv_dir(f), f'{table}.csv'))]
+        for name in names:
+            table = table_of(name)
+            files = [(os.path.join(csv_dir(f), f'{name}.csv'), mid, comp, season) for f, mid, comp, season in tagged
+                     if os.path.exists(os.path.join(csv_dir(f), f'{name}.csv'))]
             con.execute('create or replace temp table _tags (file VARCHAR, match_id BIGINT, competition VARCHAR, '
                         'season VARCHAR)')
             con.executemany('insert into _tags values (?, ?, ?, ?)', [list(x) for x in files])

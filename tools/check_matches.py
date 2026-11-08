@@ -5,7 +5,7 @@ is more than --after-hours ago (default 6: the 4 h before it is fetched + 2 h fo
   1. it has a WhoScored id (data/fixtures/whoscored_fixtures.csv, whoscored_schedule_*, whoscored_links_*);
   2. it was fetched (data/matches/<competition>_<season>/<id>_.../ with its exports);
   3. it is on the website (matches.json of ~/data-workers.com/projet/foot_3d/);
-  4. it is in the database: in z_raw (z_raw.whoscored_match) and in c_marts (c_marts.fct_team_match, so the dbt build
+  4. it is in the database: in z_raw (z_raw.ws_match) and in c_marts (c_marts.fct_team_match, so the dbt build
      after its load went through).
 When something is missing, an e-mail goes to --to (sendmail); the same list is sent again only after 20 h (so once per evening run), and a short
 "back to normal" e-mail follows when everything is there again (state in data/matches/alert_state.json).
@@ -95,13 +95,13 @@ def report(season, after_hours):
 
 
 def motherduck(season):
-    """WhoScored ids of `season` in the database: z_raw (whoscored_match) and c_marts (fct_team_match), and the error
+    """WhoScored ids of `season` in the database: z_raw (ws_match) and c_marts (fct_team_match), and the error
     if MotherDuck could not be read."""
     try:
         import duckdb
         con = duckdb.connect(os.environ.get('FOOT_DB', os.path.expanduser('~/data/foot.duckdb')), read_only=True)
         ids = lambda sql: {int(r[0]) for r in con.execute(sql, [season]).fetchall()}
-        return (ids('select distinct match_id from z_raw.whoscored_match where season = ?'),
+        return (ids('select distinct match_id from z_raw.ws_match where season = ?'),
                 ids('select distinct match_id from c_marts.fct_team_match where season = ?'), None)
     except Exception as e:   # noqa: BLE001  (reported in the e-mail rather than crashing the check)
         return set(), set(), str(e)
