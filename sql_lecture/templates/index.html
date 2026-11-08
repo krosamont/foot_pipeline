@@ -38,7 +38,8 @@
 .cm-s-default .cm-operator{color:#f472b6}.cm-s-default .cm-atom{color:#fb923c}.cm-s-default .cm-variable-2{color:#e2e8f0}
 .cm-s-default .cm-bracket{color:var(--muted)}
 .CodeMirror-hints{background:var(--panel-2);border:1px solid var(--line);font:12.5px var(--mono);border-radius:8px;z-index:20}
-.CodeMirror-hint{color:var(--text)}li.CodeMirror-hint-active{background:var(--brand);color:var(--bg)}
+.CodeMirror-hint{color:var(--text);display:flex;justify-content:space-between;gap:18px;padding:3px 10px}
+.CodeMirror-hint .genre{color:var(--muted);font-size:11px}li.CodeMirror-hint-active .genre{color:var(--bg)}li.CodeMirror-hint-active{background:var(--brand);color:var(--bg)}
 .actions{display:flex;gap:10px;align-items:center;margin:10px 0;flex-wrap:wrap}
 .actions kbd{font:11px var(--mono);opacity:.75}
 .statut{min-height:18px}
@@ -70,7 +71,7 @@
     <button id="executer">Exécuter <kbd>Ctrl/⌘+Entrée</kbd></button>
     <button class="second" id="csv">Exporter en CSV</button>
     <span class="info">lecture seule · {{ max_lignes }} lignes affichées au plus · {{ delai }} s maximum · une sélection
-      n'exécute que le texte sélectionné · Ctrl+Espace : tables et colonnes · double-clic sur un onglet : le renommer</span>
+      n'exécute que le texte sélectionné · suggestions en tapant (tables, colonnes, mots-clés ; Tab ou Entrée pour choisir) · double-clic sur un onglet : le renommer</span>
   </div>
   <div class="info statut" id="statut"></div>
   <div id="resultat"></div>
@@ -82,11 +83,11 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/sql/sql.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/sql-hint.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/selection/active-line.min.js"></script>
 <script>
 const JETON = {{ jeton|tojson }}, URL_EXEC = {{ url_for('executer_json')|tojson }}, SQL_URL = {{ sql|tojson }};
 const TABLES = {{ tables|tojson }};
+const echapper = s => String(s).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
 const CLE = 'foot_sql_onglets_v1', DEFAUT = 'select *\nfrom c_marts.fct_team_match\nlimit 100';
 
 // tabs kept in this browser (localStorage); the page works without it (private window, blocked storage)
@@ -105,16 +106,55 @@ if (SQL_URL) ajouter(null, SQL_URL);
 if (!etat.onglets.some(o => o.id === etat.actif)) etat.actif = etat.onglets[0].id;
 
 // editor: one CodeMirror, one document per tab (each keeps its own undo history)
-const arbre = {};
-for (const [nom, cols] of Object.entries(TABLES)) {
-  const [s, t] = nom.split('.'); (arbre[s] = arbre[s] || {})[t] = cols;
+const NOMS = Object.keys(TABLES), SCHEMAS = [...new Set(NOMS.map(n => n.split('.')[0]))];
+const MOTS_CLES = ['select', 'from', 'where', 'group by', 'order by', 'limit', 'having', 'qualify', 'with', 'as', 'on',
+  'join', 'left join', 'inner join', 'full join', 'cross join', 'and', 'or', 'not', 'in', 'is null', 'is not null',
+  'between', 'like', 'ilike', 'distinct', 'case', 'when', 'then', 'else', 'end', 'union all', 'over', 'partition by',
+  'desc', 'asc', 'count', 'sum', 'avg', 'min', 'max', 'round', 'cast', 'coalesce', 'nullif', 'date_diff', 'describe',
+  'summarize', 'explain', 'true', 'false', 'null'];
+function suggestions(c) {
+  // the word being typed (letters, digits, _ and .), what it can be: a table, a column of the tables of the query, a keyword
+  const cur = c.getCursor(), ligne = c.getLine(cur.line);
+  let debut = cur.ch;
+  while (debut > 0 && /[\w.]/.test(ligne[debut - 1])) debut--;
+  const mot = ligne.slice(debut, cur.ch).toLowerCase();
+  if (!mot) return null;
+  const sql = c.getValue().toLowerCase(), liste = [], vus = new Set();
+  const ajouter = (text, genre, de) => { if (!vus.has(text)) { vus.add(text); liste.push({text, genre, from: de}); } };
+  const dans = NOMS.filter(n => new RegExp('\\b' + n.replace('.', '\\.') + '\\b').test(sql));
+  const point = mot.lastIndexOf('.');
+  if (point >= 0 && !SCHEMAS.includes(mot.slice(0, point))) {
+    // alias.colonne or table.colonne: only the part after the dot is completed
+    const avant = mot.slice(0, point), apres = mot.slice(point + 1);
+    const tables = NOMS.filter(n => n.split('.')[1] === avant || n === avant);
+    for (const n of (tables.length ? tables : dans)) for (const col of TABLES[n])
+      if (col.toLowerCase().startsWith(apres)) ajouter(col, n.split('.')[1], CodeMirror.Pos(cur.line, debut + point + 1));
+  } else {
+    for (const n of NOMS) {
+      const t = n.split('.')[1];
+      if (n.startsWith(mot) || t.startsWith(mot)) ajouter(n, 'table', CodeMirror.Pos(cur.line, debut));
+    }
+    for (const sch of SCHEMAS) if (sch.startsWith(mot) && sch !== mot) ajouter(sch + '.', 'schéma', CodeMirror.Pos(cur.line, debut));
+    if (point < 0) {
+      for (const n of dans) for (const col of TABLES[n])
+        if (col.toLowerCase().startsWith(mot)) ajouter(col, n.split('.')[1], CodeMirror.Pos(cur.line, debut));
+      if (mot.length >= 2) for (const k of MOTS_CLES) if (k.startsWith(mot) && k !== mot) ajouter(k, 'mot-clé', CodeMirror.Pos(cur.line, debut));
+    }
+  }
+  if (!liste.length) return null;
+  return {list: liste.slice(0, 60).map(x => ({text: x.text, from: x.from, to: cur, render: (el, _, d) => {
+      el.innerHTML = `<span>${echapper(d.text)}</span><span class="genre">${echapper(x.genre)}</span>`;
+    }})), from: liste[0].from, to: cur};
 }
 const cm = CodeMirror.fromTextArea(document.getElementById('sql'), {
   mode: 'text/x-sql', lineNumbers: true, styleActiveLine: true, indentUnit: 4, tabSize: 4, matchBrackets: true,
-  lineWrapping: false, hintOptions: {tables: arbre, completeSingle: false},
+  lineWrapping: false, hintOptions: {hint: suggestions, completeSingle: false},
   extraKeys: {'Ctrl-Enter': executer, 'Cmd-Enter': executer, 'Ctrl-Space': 'autocomplete',
               Tab: c => c.somethingSelected() ? c.indentSelection('add') : c.replaceSelection('    ')}});
-cm.on('inputRead', (c, ch) => { if (ch.text[0] === '.') c.showHint(); });
+// suggestions while typing: from the first letter of a word, and after a dot
+cm.on('inputRead', (c, ch) => {
+  if (!c.state.completionActive && ch.origin === '+input' && /^[\w.]$/.test(ch.text[0])) c.showHint();
+});
 const docs = {}, resultats = {};
 const doc = o => docs[o.id] || (docs[o.id] = CodeMirror.Doc(o.sql, 'text/x-sql'));
 let minuteur;
@@ -168,7 +208,6 @@ function afficher() {
 }
 
 // run the selection, or the whole tab
-const echapper = s => String(s).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
 function tableau(d) {
   const tete = d.colonnes.map(c => `<th>${echapper(c)}</th>`).join('');
   const corps = d.lignes.map(l => '<tr>' + l.map(v => v === null ? '<td class="null">null</td>'
