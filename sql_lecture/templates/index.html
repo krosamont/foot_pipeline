@@ -1,22 +1,62 @@
 {% extends 'base.html' %}
 {% block contenu %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.css">
 <style>
-.grille{display:grid;grid-template-columns:280px 1fr;gap:20px}
-@media (max-width:800px){.grille{grid-template-columns:1fr}}
-.schema{max-height:80vh;overflow:auto;font-size:13px;border-right:1px solid var(--trait);padding-right:10px}
-.schema details{margin:2px 0}.schema summary{cursor:pointer}
-.schema .t{font-family:ui-monospace,Menlo,monospace;cursor:pointer}.schema .t:hover{color:var(--rouge)}
-.schema .vue{color:var(--doux);font-size:11px}
-.schema ul{margin:2px 0 6px;padding-left:18px;color:var(--doux);font-family:ui-monospace,Menlo,monospace;font-size:12px}
-.actions{display:flex;gap:10px;align-items:center;margin:8px 0;flex-wrap:wrap}
+.grille{display:grid;grid-template-columns:290px minmax(0,1fr);gap:18px}
+@media (max-width:860px){.grille{grid-template-columns:minmax(0,1fr)}.schema{max-height:40vh}}
+.schema{max-height:calc(100vh - 100px);overflow:auto;font-size:13px;background:var(--panel);border:1px solid var(--line);
+  border-radius:12px;padding:12px;position:sticky;top:70px}
+.schema input{width:100%;font:13px Inter,sans-serif;background:var(--bg);color:var(--text);border:1px solid var(--line);
+  border-radius:8px;padding:6px 10px;margin-bottom:8px}
+.schema input:focus{outline:none;border-color:var(--brand)}
+.schema details{margin:2px 0}.schema summary{cursor:pointer;padding:2px 0}.schema summary::marker{color:var(--muted)}
+.schema .sch{font-weight:700;color:var(--brand)}
+.schema .t{font-family:var(--mono);font-size:12px;cursor:pointer}.schema .t:hover{color:var(--brand)}
+.schema .vue{color:var(--muted);font-size:10.5px}
+.schema ul{margin:2px 0 6px;padding-left:20px;color:var(--muted);font:11.5px var(--mono);list-style:none}
+.onglets{display:flex;gap:4px;align-items:flex-end;overflow-x:auto;border-bottom:1px solid var(--line)}
+.onglet{display:flex;align-items:center;gap:6px;padding:7px 10px 7px 14px;border:1px solid transparent;border-bottom:0;
+  border-radius:10px 10px 0 0;color:var(--muted);cursor:pointer;white-space:nowrap;font-weight:500;max-width:220px}
+.onglet:hover{color:var(--text);background:rgba(255,255,255,.04)}
+.onglet.actif{color:var(--text);background:var(--panel);border-color:var(--line);box-shadow:inset 0 2px 0 var(--brand)}
+.onglet .nom{overflow:hidden;text-overflow:ellipsis;outline:none}
+.onglet .nom[contenteditable=true]{border-bottom:1px dashed var(--brand);text-overflow:clip}
+.onglet .fermer{border:0;background:transparent;color:var(--muted);padding:0 4px;font-size:15px;line-height:1;border-radius:4px}
+.onglet .fermer:hover{color:var(--danger);background:transparent}
+.ajouter{background:transparent;color:var(--muted);border:0;font-size:18px;padding:4px 10px;margin-bottom:2px}
+.ajouter:hover{color:var(--brand);background:transparent}
+.editeur{border:1px solid var(--line);border-top:0;border-radius:0 0 12px 12px;overflow:hidden}
+.CodeMirror{height:260px;background:var(--panel);color:var(--text);font:13.5px/1.55 var(--mono);resize:vertical}
+.CodeMirror-gutters{background:var(--panel-2);border-right:1px solid var(--line)}
+.CodeMirror-linenumber{color:#475569;padding:0 10px 0 6px}
+.CodeMirror-cursor{border-left:2px solid var(--brand)}
+.CodeMirror-selected,.CodeMirror-focused .CodeMirror-selected{background:rgba(45,196,194,.18)}
+.CodeMirror-activeline-background{background:rgba(255,255,255,.03)}
+.cm-s-default .cm-keyword{color:#2dc4c2;font-weight:600}.cm-s-default .cm-builtin{color:#7dd3fc}
+.cm-s-default .cm-string{color:#fbbf24}.cm-s-default .cm-number{color:#c4b5fd}.cm-s-default .cm-comment{color:#64748b;font-style:italic}
+.cm-s-default .cm-operator{color:#f472b6}.cm-s-default .cm-atom{color:#fb923c}.cm-s-default .cm-variable-2{color:#e2e8f0}
+.cm-s-default .cm-bracket{color:var(--muted)}
+.CodeMirror-hints{background:var(--panel-2);border:1px solid var(--line);font:12.5px var(--mono);border-radius:8px;z-index:20}
+.CodeMirror-hint{color:var(--text)}li.CodeMirror-hint-active{background:var(--brand);color:var(--bg)}
+.actions{display:flex;gap:10px;align-items:center;margin:10px 0;flex-wrap:wrap}
+.actions kbd{font:11px var(--mono);opacity:.75}
+.statut{min-height:18px}
+.charge::before{content:'';display:inline-block;width:10px;height:10px;margin-right:6px;border:2px solid var(--brand);
+  border-right-color:transparent;border-radius:50%;animation:t .7s linear infinite;vertical-align:-1px}
+@keyframes t{to{transform:rotate(360deg)}}
 </style>
 <div class="grille">
 <aside class="schema">
-  <p class="info">Schémas — clic sur une table pour l'interroger. z_raw : toutes les données brutes, telles que chargées ; a_staging : une vue par table brute ; b_intermediate et c_marts : les tables calculées par dbt.</p>
+  <input type="search" id="filtre" placeholder="Filtrer les tables…" autocomplete="off">
+  <p class="info">Clic sur une table : nouvel onglet qui l'interroge. z_raw : données brutes ; a_staging : une vue par table
+    brute ; b_intermediate et c_marts : tables calculées par dbt.</p>
   {% for sch, tables in arbre.items() %}
-  <details {% if sch in ('c_marts',) %}open{% endif %}><summary><b>{{ sch }}</b> ({{ tables|length }})</summary>
+  <details class="bloc" {% if sch == 'c_marts' %}open{% endif %}><summary><span class="sch">{{ sch }}</span>
+    <span class="vue">{{ tables|length }}</span></summary>
     {% for t, d in tables.items() %}
-    <details><summary><span class="t" data-q="select * from {{ sch }}.{{ t }} limit 100">{{ t }}</span> {% if d.type == 'vue' %}<span class="vue">vue</span>{% endif %}</summary>
+    <details class="tbl" data-nom="{{ sch }}.{{ t }}"><summary><span class="t" data-table="{{ sch }}.{{ t }}">{{ t }}</span>
+      {% if d.type == 'vue' %}<span class="vue">vue</span>{% endif %}</summary>
       <ul>{% for c, ty in d.colonnes %}<li>{{ c }} <span class="vue">{{ ty|lower }}</span></li>{% endfor %}</ul>
     </details>
     {% endfor %}
@@ -24,26 +64,158 @@
   {% endfor %}
 </aside>
 <section>
-  <form method="post" id="f">
-    <input type="hidden" name="jeton" value="{{ jeton }}">
-    <textarea name="sql" id="sql" spellcheck="false">{{ sql }}</textarea>
-    <div class="actions">
-      <button>Exécuter <span class="info" style="color:inherit">(Ctrl+Entrée)</span></button>
-      <button class="second" formaction="{{ url_for('export_csv') }}">Exporter en CSV</button>
-      <span class="info">lecture seule · {{ max_lignes }} lignes affichées au plus · 60 s maximum</span>
-    </div>
+  <div class="onglets" id="onglets"></div>
+  <div class="editeur"><textarea id="sql"></textarea></div>
+  <div class="actions">
+    <button id="executer">Exécuter <kbd>Ctrl/⌘+Entrée</kbd></button>
+    <button class="second" id="csv">Exporter en CSV</button>
+    <span class="info">lecture seule · {{ max_lignes }} lignes affichées au plus · {{ delai }} s maximum · une sélection
+      n'exécute que le texte sélectionné · Ctrl+Espace : tables et colonnes · double-clic sur un onglet : le renommer</span>
+  </div>
+  <div class="info statut" id="statut"></div>
+  <div id="resultat"></div>
+  <form method="post" action="{{ url_for('export_csv') }}" id="form_csv" hidden>
+    <input type="hidden" name="jeton" value="{{ jeton }}"><input type="hidden" name="sql">
   </form>
-  {% if erreur %}<div class="erreur">{{ erreur }}</div>{% endif %}
-  {% if resultat %}{% set colonnes, lignes, tronque, duree = resultat %}
-  <p class="info">{{ lignes|length }} ligne(s){% if tronque %} — résultat tronqué, ajoutez un LIMIT ou exportez en CSV{% endif %} · {{ '%.2f'|format(duree) }} s</p>
-  <div class="table"><table><thead><tr>{% for c in colonnes %}<th>{{ c }}</th>{% endfor %}</tr></thead>
-  <tbody>{% for l in lignes %}<tr>{% for v in l %}{% if v is none %}<td class="null">null</td>{% else %}<td title="{{ v }}">{{ v }}</td>{% endif %}{% endfor %}</tr>{% endfor %}</tbody></table></div>
-  {% endif %}
 </section>
 </div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/sql/sql.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/sql-hint.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/selection/active-line.min.js"></script>
 <script>
-const sql = document.getElementById('sql'), f = document.getElementById('f');
-sql.addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') f.submit(); });
-document.querySelectorAll('.schema .t').forEach(t => t.addEventListener('click', e => { e.preventDefault(); sql.value = t.dataset.q; f.submit(); }));
+const JETON = {{ jeton|tojson }}, URL_EXEC = {{ url_for('executer_json')|tojson }}, SQL_URL = {{ sql|tojson }};
+const TABLES = {{ tables|tojson }};
+const CLE = 'foot_sql_onglets_v1', DEFAUT = 'select *\nfrom c_marts.fct_team_match\nlimit 100';
+
+// tabs kept in this browser (localStorage); the page works without it (private window, blocked storage)
+function lire() { try { return JSON.parse(localStorage.getItem(CLE)); } catch (e) { return null; } }
+function ecrire() { try { localStorage.setItem(CLE, JSON.stringify(etat)); } catch (e) {} }
+let etat = lire();
+if (!etat || !Array.isArray(etat.onglets) || !etat.onglets.length) etat = {onglets: [], actif: null, n: 0};
+const nouvelId = () => 'o' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+function ajouter(nom, sql) {
+  etat.n = (etat.n || etat.onglets.length) + 1;
+  const o = {id: nouvelId(), nom: nom || 'Requête ' + etat.n, sql: sql ?? DEFAUT};
+  etat.onglets.push(o); etat.actif = o.id; return o;
+}
+if (!etat.onglets.length) ajouter();
+if (SQL_URL) ajouter(null, SQL_URL);
+if (!etat.onglets.some(o => o.id === etat.actif)) etat.actif = etat.onglets[0].id;
+
+// editor: one CodeMirror, one document per tab (each keeps its own undo history)
+const arbre = {};
+for (const [nom, cols] of Object.entries(TABLES)) {
+  const [s, t] = nom.split('.'); (arbre[s] = arbre[s] || {})[t] = cols;
+}
+const cm = CodeMirror.fromTextArea(document.getElementById('sql'), {
+  mode: 'text/x-sql', lineNumbers: true, styleActiveLine: true, indentUnit: 4, tabSize: 4, matchBrackets: true,
+  lineWrapping: false, hintOptions: {tables: arbre, completeSingle: false},
+  extraKeys: {'Ctrl-Enter': executer, 'Cmd-Enter': executer, 'Ctrl-Space': 'autocomplete',
+              Tab: c => c.somethingSelected() ? c.indentSelection('add') : c.replaceSelection('    ')}});
+cm.on('inputRead', (c, ch) => { if (ch.text[0] === '.') c.showHint(); });
+const docs = {}, resultats = {};
+const doc = o => docs[o.id] || (docs[o.id] = CodeMirror.Doc(o.sql, 'text/x-sql'));
+let minuteur;
+cm.on('change', () => {
+  const o = actif(); if (!o) return;
+  o.sql = cm.getValue(); clearTimeout(minuteur); minuteur = setTimeout(ecrire, 300);
+});
+const actif = () => etat.onglets.find(o => o.id === etat.actif);
+
+const barre = document.getElementById('onglets');
+function dessinerOnglets() {
+  barre.innerHTML = '';
+  for (const o of etat.onglets) {
+    const el = document.createElement('div');
+    el.className = 'onglet' + (o.id === etat.actif ? ' actif' : ''); el.title = o.nom;
+    const nom = document.createElement('span'); nom.className = 'nom'; nom.textContent = o.nom;
+    const x = document.createElement('button'); x.className = 'fermer'; x.textContent = '×'; x.title = 'Fermer';
+    el.append(nom, x);
+    el.addEventListener('click', e => { if (e.target !== x && nom.contentEditable !== 'true') activer(o.id); });
+    nom.addEventListener('dblclick', () => {
+      nom.contentEditable = 'true'; nom.focus(); document.getSelection().selectAllChildren(nom);
+    });
+    const finir = () => { nom.contentEditable = 'false'; o.nom = nom.textContent.trim() || o.nom; ecrire(); dessinerOnglets(); };
+    nom.addEventListener('blur', finir);
+    nom.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); nom.blur(); }
+      if (e.key === 'Escape') { nom.textContent = o.nom; nom.blur(); }
+    });
+    x.addEventListener('click', () => fermer(o.id));
+    barre.append(el);
+  }
+  const plus = document.createElement('button'); plus.className = 'ajouter'; plus.textContent = '+'; plus.title = 'Nouvel onglet';
+  plus.addEventListener('click', () => { ajouter(null, ''); ecrire(); afficher(); cm.focus(); });
+  barre.append(plus);
+}
+function activer(id) { etat.actif = id; ecrire(); afficher(); }
+function fermer(id) {
+  const i = etat.onglets.findIndex(o => o.id === id);
+  etat.onglets.splice(i, 1); delete docs[id]; delete resultats[id];
+  if (!etat.onglets.length) ajouter();
+  if (etat.actif === id) etat.actif = etat.onglets[Math.max(0, i - 1)].id;
+  ecrire(); afficher();
+}
+function afficher() {
+  dessinerOnglets();
+  cm.swapDoc(doc(actif()));
+  const r = resultats[etat.actif];
+  document.getElementById('statut').innerHTML = r ? r.statut : '';
+  document.getElementById('statut').className = 'info statut' + (r && r.charge ? ' charge' : '');
+  document.getElementById('resultat').innerHTML = r ? r.html : '';
+}
+
+// run the selection, or the whole tab
+const echapper = s => String(s).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
+function tableau(d) {
+  const tete = d.colonnes.map(c => `<th>${echapper(c)}</th>`).join('');
+  const corps = d.lignes.map(l => '<tr>' + l.map(v => v === null ? '<td class="null">null</td>'
+    : `<td${typeof v === 'number' ? ' class="num"' : ''} title="${echapper(v)}">${echapper(v)}</td>`).join('') + '</tr>').join('');
+  return `<div class="table"><table><thead><tr>${tete}</tr></thead><tbody>${corps}</tbody></table></div>`;
+}
+const texte = () => cm.somethingSelected() ? cm.getSelection() : cm.getValue();
+async function executer() {
+  const o = actif(), sql = texte().trim();
+  if (!sql) return;
+  resultats[o.id] = {statut: 'requête en cours…', html: (resultats[o.id] || {}).html || '', charge: true}; afficher();
+  let r;
+  try {
+    const rep = await fetch(URL_EXEC, {method: 'POST', credentials: 'same-origin',
+      headers: {'Content-Type': 'application/json', 'X-Jeton': JETON}, body: JSON.stringify({sql})});
+    if (rep.redirected || (rep.headers.get('content-type') || '').indexOf('json') < 0) {
+      r = {statut: '', html: '<div class="erreur">session terminée : <a href="">reconnectez-vous</a> (vos onglets sont gardés)</div>'};
+    } else {
+      const d = await rep.json();
+      r = d.erreur ? {statut: '', html: `<div class="erreur">${echapper(d.erreur)}</div>`}
+        : {statut: `${d.lignes.length} ligne(s)${d.tronque ? ' — résultat tronqué, ajoutez un LIMIT ou exportez en CSV' : ''}`
+             + ` · ${d.duree.toFixed(2)} s`, html: d.colonnes.length ? tableau(d) : ''};
+    }
+  } catch (e) {
+    r = {statut: '', html: `<div class="erreur">serveur injoignable : ${echapper(e.message)}</div>`};
+  }
+  resultats[o.id] = r;
+  if (etat.actif === o.id) afficher();
+}
+document.getElementById('executer').addEventListener('click', executer);
+document.getElementById('csv').addEventListener('click', () => {
+  const f = document.getElementById('form_csv'); f.sql.value = texte(); f.submit();
+});
+
+// schema: click a table -> new tab querying it; filter
+document.querySelectorAll('.schema .t').forEach(t => t.addEventListener('click', e => {
+  e.preventDefault();
+  const nom = t.dataset.table;
+  ajouter(nom.split('.')[1], `select *\nfrom ${nom}\nlimit 100`); ecrire(); afficher(); executer();
+}));
+document.getElementById('filtre').addEventListener('input', e => {
+  const q = e.target.value.trim().toLowerCase();
+  document.querySelectorAll('.schema .tbl').forEach(d => { d.hidden = q && !d.dataset.nom.toLowerCase().includes(q); });
+  document.querySelectorAll('.schema .bloc').forEach(b => { if (q) b.open = !!b.querySelector('.tbl:not([hidden])'); });
+});
+if (SQL_URL) history.replaceState(null, '', location.pathname);
+afficher();
+cm.focus(); cm.setCursor(cm.lineCount(), 0);
 </script>
 {% endblock %}
