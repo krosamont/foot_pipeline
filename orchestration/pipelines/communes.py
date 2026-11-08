@@ -16,6 +16,15 @@ def charger_sources(**kw):
                  description='nouveaux matchs (JSON de data/matches/ en CSV) -> tables z_raw', **kw)
 
 
+def nouveau_transfermarkt(table='transfermarkt_player', **kw):
+    """Des fiches Transfermarkt chargées (tm.run load, depuis le Mac) après la dernière copie de lecture ? Code 3 (statut
+    « rien ») sinon : sans cette tâche, un chargement Transfermarkt sans nouveau match ne relançait pas dbt."""
+    return Tache('nouveau_transfermarkt',
+                 f'n=$({DUCKDB} -readonly -noheader -list {BASE} -c "select count(*) from z_raw.{table} '
+                 f'where epoch(_loaded_at) > $(stat -c %Y {LECTURE} 2>/dev/null || echo 0)") && [ "$n" -gt 0 ] || exit 3',
+                 code_rien=3, description='fiches Transfermarkt chargées depuis la dernière copie de lecture', **kw)
+
+
 def dbt_build(**kw):
     """dbt build de foot_db : vues a_staging, tables b_intermediate et c_marts (incrémentales : seuls les matchs chargés
     depuis le passage précédent sont recalculés), tests."""
