@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Off-server copy of the football database, every day at 09:00 (tools/sauvegarde_mac.sh). Install:
+     tools/launchd/install.sh. A run missed while the Mac sleeps runs when it wakes. -->
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.krosamont.foot-sauvegarde</string>
+  <key>ProgramArguments</key><array><string>/bin/bash</string><string>__REPO__/tools/sauvegarde_mac.sh</string></array>
+  <key>StartCalendarInterval</key><dict><key>Hour</key><integer>9</integer><key>Minute</key><integer>0</integer></dict>
+  <key>StandardOutPath</key><string>/tmp/foot-sauvegarde.launchd.log</string>
+  <key>StandardErrorPath</key><string>/tmp/foot-sauvegarde.launchd.log</string>
+</dict>
+</plist>
