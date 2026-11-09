@@ -60,6 +60,11 @@ read by the SQL page (about 5 min for 3 GB). dbt tests, backup and checks stay a
 Extract and load are Python (`tools/load_raw.py`, values unchanged); every transformation is a dbt model in foot_db.
 Restore a backup: `duckdb new.duckdb -c "IMPORT DATABASE '~/data/sauvegardes/foot-YYYYMMDD'"`.
 
+Off-server copy: every day at 09:00 the Mac copies the raw data of the latest export (z_raw, z_technique, about 700 MB;
+everything else is rebuilt by dbt) to `~/Documents/dataScience/sport/football/sauvegardes_foot/`, keeps the 2 latest,
+and runs a restore test (every raw table imported into a temporary DuckDB file, rows counted against its Parquet
+file): `tools/sauvegarde_mac.sh`, `tools/test_restauration.py`, installed by `tools/launchd/install.sh`.
+
 ## Read-only SQL page (`sql_lecture/`)
 
 https://data-workers.com/sql — Flask app run by Passenger (cPanel Python app, root `~/data/sql_lecture`, Python 3.12),
