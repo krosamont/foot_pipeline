@@ -15,11 +15,14 @@ fotmob_shot...), every value as text, plus match_id (WhoScored id), competition 
 season ('2026-2027'), _source_file and _loaded_at (the same time for every table of a batch).
 z_technique.pipeline_load: match id -> date of its CSV files, written in the same transaction as the rows (the
 loader's bookkeeping: which matches are new or changed; read by no model).
+A match WhoScored has no events for (matchCentreData null on its page), listed in tools/fotmob_only_matches.csv, is
+loaded from its raw/fotmob.json alone (foot_db: int_match data_convention 'fotmob', its FotMob shots as events).
 A new column in the files is added to its table (text). The matches are read 50 at a time (the server limits the
 number of open files) and each batch is one transaction: delete the rows of its matches in every match table, insert,
 record the load.
 """
 import argparse
+import csv
 import glob
 import os
 import sys
@@ -39,6 +42,14 @@ LOADS = 'z_technique.pipeline_load'   # technical schema: the loader's bookkeepi
 FIRST_SEASON = '2025-2026'   # before: the old project's seasons (tools/load_legacy.py)
 COMPETITION = {'serie': 'serie-a'}   # folder slug -> name used in the tables
 BATCH = 50
+FOTMOB_ONLY = os.path.join(ROOT, 'tools', 'fotmob_only_matches.csv')   # WhoScored id -> loaded from FotMob alone
+
+
+def fotmob_only_ids():
+    if not os.path.exists(FOTMOB_ONLY):
+        return set()
+    with open(FOTMOB_ONLY, newline='') as f:
+        return {int(r['whoscored_match_id']) for r in csv.DictReader(f)}
 PREFIXES = ('whoscored_', 'fotmob_')   # the match tables (not the _legacy ones)
 
 
@@ -118,9 +129,10 @@ def main(argv=None):
     a = ap.parse_args(argv)
 
     season_of = lambda d: os.path.basename(os.path.dirname(os.path.normpath(d))).rsplit('_', 1)[1]
+    fotmob_only = fotmob_only_ids()
     folders = sorted(d for d in glob.glob(os.path.join(MATCHES, '*_*-*', '*_*', ''))
-                     if os.path.exists(os.path.join(d, 'raw', 'whoscored.json'))
-                     and os.path.exists(os.path.join(d, 'raw', 'fotmob.json')))
+                     if os.path.exists(os.path.join(d, 'raw', 'fotmob.json'))
+                     and (os.path.exists(os.path.join(d, 'raw', 'whoscored.json')) or tag_of(d)[0] in fotmob_only))
     folders = [d for d in folders if (season_of(d) in a.seasons if a.seasons else season_of(d) >= FIRST_SEASON)]
     written, failed = 0, []
     for d in folders:

@@ -4,7 +4,8 @@ Pairs (WhoScored id, FotMob id) are read from data/fixtures/: whoscored_fixtures
 whoscored_links_*.csv. `--link-lists` first builds whoscored_links_<season>.csv from WhoScored match lists (CSV with
 competition, match_id, link columns), linked to the FotMob calendar of the season (pmd.fixtures).
 
-Matches listed in data/fixtures/whoscored_in_old_parquet.csv (already in the old project) are left out (--exclude-ids).
+Matches listed in data/fixtures/whoscored_in_old_parquet.csv (already in the old project) are left out (--exclude-ids),
+and those of tools/fotmob_only_matches.csv (WhoScored has no events for them: loaded from FotMob alone).
 Each match goes to data/matches/<competition>_<season>/<whoscored id>_<Home>_vs_<Away>/ (raw downloads in raw/), the
 dashboard is skipped, and the match is published on the website right away (tools/publish_web.py, --no-publish to
 skip). After the run (and once an hour during a long one) the four Parquet files go to Google Cloud
@@ -218,6 +219,9 @@ def main(argv=None):
 
     failed_path = os.path.join(MATCHES, 'failed.csv')
     skip = set(pd.read_csv(a.exclude_ids)['whoscored_match_id'].astype(int)) if a.exclude_ids and os.path.exists(a.exclude_ids) else set()
+    fotmob_only = os.path.join(ROOT, 'tools', 'fotmob_only_matches.csv')
+    if os.path.exists(fotmob_only):
+        skip |= set(pd.read_csv(fotmob_only)['whoscored_match_id'].astype(int))
 
     def pending(attempted):
         """Matches still to fetch, newest season first; read again before every match, so that a match whose 4 hours

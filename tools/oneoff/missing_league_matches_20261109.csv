@@ -1,0 +1,96 @@
+competition,season,home,away,fotmob_home,fotmob_away,date,fotmob_id,score,sim,whoscored_id
+bundesliga,2021-2022,RBL,Eintracht Frankfurt,RB Leipzig,Eintracht Frankfurt,2022-03-20,3624638,0 - 0,1.46,
+bundesliga,2021-2022,Bayern,Borussia Dortmund,Bayern München,Borussia Dortmund,2022-04-23,3624682,3 - 1,1.95,
+bundesliga,2021-2022,Bochum,Leverkusen,Bochum,Bayer Leverkusen,2022-04-10,3624657,0 - 0,1.95,
+bundesliga,2021-2022,Bochum,Borussia M.Gladbach,Bochum,Borussia Mönchengladbach,2022-03-18,3624628,0 - 2,1.84,
+bundesliga,2021-2022,Eintracht Frankfurt,Bochum,Eintracht Frankfurt,Bochum,2022-03-13,3624623,2 - 1,2.0,
+bundesliga,2021-2022,Freiburg,Bochum,Freiburg,Bochum,2022-04-16,3624669,3 - 0,2.0,
+bundesliga,2021-2022,Eintracht Frankfurt,Freiburg,Eintracht Frankfurt,Freiburg,2022-04-10,3624661,1 - 2,2.0,
+bundesliga,2021-2022,Wolfsburg,Arminia Bielefeld,Wolfsburg,Arminia Bielefeld,2022-04-09,3624662,4 - 0,2.0,
+bundesliga,2021-2022,Wolfsburg,Leverkusen,Wolfsburg,Bayer Leverkusen,2022-03-20,3624637,0 - 2,1.95,
+bundesliga,2021-2022,Wolfsburg,Mainz,Wolfsburg,Mainz 05,2022-04-22,3624680,5 - 0,1.95,
+bundesliga,2021-2022,Eintracht Frankfurt,Hoffenheim,Eintracht Frankfurt,Hoffenheim,2022-04-23,3624679,2 - 2,2.0,
+bundesliga,2021-2022,Freiburg,Bayern,Freiburg,Bayern München,2022-04-02,3624647,1 - 4,1.95,
+bundesliga,2021-2022,Freiburg,Borussia M.Gladbach,Freiburg,Borussia Mönchengladbach,2022-04-23,3624678,3 - 3,1.84,
+bundesliga,2021-2022,Borussia Dortmund,Arminia Bielefeld,Borussia Dortmund,Arminia Bielefeld,2022-03-13,3624624,1 - 0,2.0,
+bundesliga,2021-2022,Borussia Dortmund,Wolfsburg,Borussia Dortmund,Wolfsburg,2022-04-16,3624673,6 - 1,2.0,
+bundesliga,2021-2022,Arminia Bielefeld,Bayern,Arminia Bielefeld,Bayern München,2022-04-17,3624665,0 - 3,1.95,
+bundesliga,2021-2022,Borussia Dortmund,RBL,Borussia Dortmund,RB Leipzig,2022-04-02,3624655,1 - 4,1.46,
+bundesliga,2021-2022,Bochum,Augsburg,Bochum,Augsburg,2022-04-24,3624675,0 - 2,2.0,
+bundesliga,2021-2022,Hertha Berlin,Union Berlin,Hertha BSC,Union Berlin,2022-04-09,3624659,1 - 4,1.7,
+bundesliga,2021-2022,RBL,Union Berlin,RB Leipzig,Union Berlin,2022-04-23,3624681,1 - 2,1.46,
+bundesliga,2021-2022,FC Koln,Borussia Dortmund,1. FC Köln,Borussia Dortmund,2022-03-20,3624630,1 - 1,1.95,
+bundesliga,2021-2022,FC Koln,Arminia Bielefeld,1. FC Köln,Arminia Bielefeld,2022-04-23,3624676,3 - 1,1.95,
+bundesliga,2021-2022,FC Koln,Mainz,1. FC Köln,Mainz 05,2022-04-09,3624658,3 - 2,1.9,
+bundesliga,2021-2022,Hoffenheim,Bochum,Hoffenheim,Bochum,2022-04-02,3624645,1 - 2,2.0,
+bundesliga,2021-2022,Mainz,Stuttgart,Mainz 05,VfB Stuttgart,2022-04-16,3624667,0 - 0,1.9,
+bundesliga,2021-2022,Hoffenheim,Bayern,Hoffenheim,Bayern München,2022-03-12,3624614,1 - 1,1.95,
+bundesliga,2021-2022,Freiburg,Wolfsburg,Freiburg,Wolfsburg,2022-03-12,3624615,3 - 2,2.0,
+bundesliga,2021-2022,Stuttgart,Augsburg,VfB Stuttgart,Augsburg,2022-03-19,3624635,3 - 2,1.95,
+bundesliga,2021-2022,Union Berlin,FC Koln,Union Berlin,1. FC Köln,2022-04-01,3624650,1 - 0,1.95,
+bundesliga,2021-2022,Borussia M.Gladbach,FC Koln,Borussia Mönchengladbach,1. FC Köln,2022-04-16,3624670,1 - 3,1.79,
+bundesliga,2021-2022,Borussia M.Gladbach,Hertha Berlin,Borussia Mönchengladbach,Hertha BSC,2022-03-12,3624617,2 - 0,1.53,
+bundesliga,2021-2022,Borussia M.Gladbach,Mainz,Borussia Mönchengladbach,Mainz 05,2022-04-03,3624649,1 - 1,1.79,
+bundesliga,2021-2022,Union Berlin,Stuttgart,Union Berlin,VfB Stuttgart,2022-03-12,3624619,1 - 1,1.95,
+bundesliga,2021-2022,Union Berlin,Eintracht Frankfurt,Union Berlin,Eintracht Frankfurt,2022-04-17,3624671,2 - 0,2.0,
+bundesliga,2021-2022,Eintracht Frankfurt,Greuther Fuerth,Eintracht Frankfurt,Greuther Fürth,2022-04-02,3624654,0 - 0,1.97,
+bundesliga,2021-2022,Leverkusen,FC Koln,Bayer Leverkusen,1. FC Köln,2022-03-13,3624621,0 - 1,1.9,
+bundesliga,2021-2022,Leverkusen,Hertha Berlin,Bayer Leverkusen,Hertha BSC,2022-04-02,3624652,2 - 1,1.65,
+bundesliga,2021-2022,Leverkusen,RBL,Bayer Leverkusen,RB Leipzig,2022-04-17,3624672,0 - 1,1.41,
+bundesliga,2021-2022,Bayern,Union Berlin,Bayern München,Union Berlin,2022-03-19,3624640,4 - 0,1.95,
+bundesliga,2021-2022,Augsburg,Hertha Berlin,Augsburg,Hertha BSC,2022-04-16,3624666,0 - 1,1.7,
+bundesliga,2021-2022,Augsburg,Wolfsburg,Augsburg,Wolfsburg,2022-04-03,3624644,3 - 0,2.0,
+bundesliga,2021-2022,Augsburg,Mainz,Augsburg,Mainz 05,2022-04-06,3624612,2 - 1,1.95,
+bundesliga,2021-2022,Stuttgart,Borussia Dortmund,VfB Stuttgart,Borussia Dortmund,2022-04-08,3624660,0 - 2,1.95,
+bundesliga,2021-2022,Greuther Fuerth,Leverkusen,Greuther Fürth,Bayer Leverkusen,2022-04-23,3624674,1 - 4,1.92,
+bundesliga,2021-2022,Greuther Fuerth,Borussia M.Gladbach,Greuther Fürth,Borussia Mönchengladbach,2022-04-09,3624656,0 - 2,1.8,
+bundesliga,2021-2022,Greuther Fuerth,RBL,Greuther Fürth,RB Leipzig,2022-03-13,3624610,1 - 6,1.43,
+bundesliga,2021-2022,Greuther Fuerth,Freiburg,Greuther Fürth,Freiburg,2022-03-19,3624626,0 - 0,1.97,
+bundesliga,2021-2022,Bayern,Augsburg,Bayern München,Augsburg,2022-04-09,3624664,1 - 0,1.95,
+bundesliga,2021-2022,Hoffenheim,Greuther Fuerth,Hoffenheim,Greuther Fürth,2022-04-17,3624668,0 - 0,1.97,
+bundesliga,2021-2022,RBL,Hoffenheim,RB Leipzig,Hoffenheim,2022-04-10,3624663,3 - 0,1.46,
+bundesliga,2021-2022,Hertha Berlin,Hoffenheim,Hertha BSC,Hoffenheim,2022-03-19,3624631,3 - 0,1.7,
+bundesliga,2021-2022,Hertha Berlin,Stuttgart,Hertha BSC,VfB Stuttgart,2022-04-24,3624677,2 - 0,1.65,
+bundesliga,2021-2022,Mainz,Arminia Bielefeld,Mainz 05,Arminia Bielefeld,2022-03-19,3624633,4 - 0,1.95,
+bundesliga,2021-2022,Mainz,Borussia Dortmund,Mainz 05,Borussia Dortmund,2022-03-16,3624601,0 - 1,1.95,
+bundesliga,2021-2022,Arminia Bielefeld,Stuttgart,Arminia Bielefeld,VfB Stuttgart,2022-04-02,3624642,1 - 1,1.95,
+bundesliga,2022-2023,Mainz,Augsburg,Mainz 05,Augsburg,2023-02-11,3903719,3 - 1,1.95,1643214.0
+bundesliga,2022-2023,Hoffenheim,Freiburg,Hoffenheim,Freiburg,2022-09-18,3903602,0 - 0,2.0,1643097.0
+laliga,2021-2022,Athletic Club,Barcelona,Athletic Club,Barcelona,2021-08-21,3629105,1 - 1,2.0,1559829.0
+ligue-1,2021-2022,Monaco,Angers,Monaco,Angers,2022-05-01,3626171,2 - 0,2.0,1558548.0
+ligue-1,2021-2022,Angers,Nice,Angers,Nice,2021-10-31,3625936,1 - 2,2.0,1558514.0
+ligue-1,2021-2022,Lorient,Strasbourg,Lorient,Strasbourg,2022-03-20,3626109,0 - 0,2.0,1558457.0
+ligue-1,2021-2022,Clermont Foot,Brest,Clermont Foot,Brest,2021-09-19,3625877,1 - 1,2.0,1558343.0
+ligue-1,2021-2022,Bordeaux,Nantes,Bordeaux,Nantes,2021-10-17,3625916,1 - 1,2.0,1558484.0
+ligue-1,2022-2023,Troyes,Lorient,Troyes,Lorient,2022-10-23,3904610,2 - 2,2.0,1643925.0
+ligue-1,2023-2024,Rennes,Metz,Rennes,Metz,2023-08-13,4219153,5 - 1,2.0,1741059.0
+premier-league,2021-2022,Norwich,West Ham,Norwich City,West Ham United,2022-05-08,3610280,0 - 4,1.9,
+premier-league,2021-2022,Crystal Palace,Wolves,Crystal Palace,Wolverhampton Wanderers,2021-11-06,3610033,2 - 0,1.41,
+premier-league,2021-2022,Leeds,Wolves,Leeds United,Wolverhampton Wanderers,2021-10-23,3610015,1 - 1,1.36,
+premier-league,2021-2022,Aston Villa,Norwich,Aston Villa,Norwich City,2022-04-30,3610279,2 - 0,1.95,
+premier-league,2021-2022,Leeds,Man City,Leeds United,Manchester City,2022-04-30,3610277,0 - 4,1.65,
+premier-league,2021-2022,Leicester,Everton,Leicester City,Everton,2022-05-08,3610283,1 - 2,1.95,
+premier-league,2021-2022,Tottenham,Chelsea,Tottenham Hotspur,Chelsea,2021-09-19,3609976,0 - 3,1.95,1549586.0
+premier-league,2021-2022,Tottenham,Brentford,Tottenham Hotspur,Brentford,2021-12-02,3610068,2 - 0,1.95,
+premier-league,2021-2022,Southampton,Burnley,Southampton,Burnley,2021-10-23,3610017,2 - 2,2.0,1549627.0
+premier-league,2021-2022,Crystal Palace,Norwich,Crystal Palace,Norwich City,2021-12-28,3610124,3 - 0,1.95,1549733.0
+premier-league,2021-2022,Newcastle,Brentford,Newcastle United,Brentford,2021-11-20,3610044,3 - 3,1.95,
+premier-league,2022-2023,Everton,Newcastle,Everton,Newcastle United,2023-04-27,3901252,1 - 4,1.95,
+premier-league,2022-2023,Wolves,Tottenham,Wolverhampton Wanderers,Tottenham Hotspur,2023-03-04,3901191,1 - 0,1.36,
+premier-league,2022-2023,Bournemouth,Leicester,AFC Bournemouth,Leicester City,2022-10-08,3901023,2 - 1,1.9,
+premier-league,2022-2023,Arsenal,Leeds,Arsenal,Leeds United,2023-04-01,3901212,4 - 1,1.95,
+premier-league,2022-2023,Tottenham,Brentford,Tottenham Hotspur,Brentford,2023-05-20,3901299,1 - 3,1.95,
+premier-league,2022-2023,Southampton,West Ham,Southampton,West Ham United,2022-10-16,3901039,1 - 1,1.95,
+premier-league,2022-2023,Leeds,Brighton,Leeds United,Brighton & Hove Albion,2023-03-11,3901196,2 - 2,1.9,
+serie-a,2021-2022,Napoli,Verona,Napoli,Hellas Verona,2021-11-07,3657110,1 - 1,1.95,1575896.0
+serie-a,2021-2022,Napoli,Bologna,Napoli,Bologna,2021-10-28,3657089,3 - 0,2.0,1575876.0
+serie-a,2021-2022,Sassuolo,Empoli,Sassuolo,Empoli,2021-10-31,3657103,1 - 2,2.0,1575889.0
+serie-a,2021-2022,Cagliari,Atalanta,Cagliari,Atalanta,2021-11-06,3657105,1 - 2,2.0,1575891.0
+serie-a,2021-2022,Salernitana,Atalanta,Salernitana,Atalanta,2021-09-18,3657027,0 - 1,2.0,1575817.0
+serie-a,2021-2022,Atalanta,Lazio,Atalanta,Lazio,2021-10-30,3657095,2 - 2,2.0,1575881.0
+serie-a,2022-2023,Cremonese,Atalanta,Cremonese,Atalanta,2023-04-01,3919310,1 - 3,2.0,1651673.0
+serie-a,2022-2023,Cremonese,Monza,Cremonese,Monza,2023-01-14,3919220,2 - 3,2.0,1651573.0
+serie-a,2022-2023,Empoli,Atalanta,Empoli,Atalanta,2022-10-30,3919140,0 - 2,2.0,1651493.0
+serie-a,2022-2023,Atalanta,Spezia,Atalanta,Spezia,2023-05-03,3919419,3 - 2,2.0,1651772.0
+serie-a,2022-2023,Verona,Sassuolo,Hellas Verona,Sassuolo,2023-04-08,3919321,2 - 1,1.95,1651695.0
+serie-a,2022-2023,Napoli,Spezia,Napoli,Spezia,2022-09-10,3919450,1 - 0,2.0,1651789.0
