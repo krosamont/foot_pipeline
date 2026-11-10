@@ -236,3 +236,17 @@ Tested on LaLiga 2025/2026: 380/380 WhoScored matches linked to FotMob, 380/380 
 (`data/fixtures/whoscored_schedule_2025-2026_laliga.csv`). About 3 minutes per league season; soccerdata caches the
 pages in `~/soccerdata` (or `$SOCCERDATA_DIR`). The Champions League is not one of soccerdata's WhoScored defaults
 (it needs a custom entry in soccerdata's `league_dict.json`, not done yet): for it, keep the manual export.
+
+
+## Dagster (orchestration as assets)
+
+`dagster_foot/` describes the football database as Dagster assets (open source, no daemon: o2switch allows no
+permanent process): one asset per raw table (`z_raw`), one per dbt model and seed of foot_db (dagster-dbt; the dbt
+tests are asset checks), the read copy, the backup and the checks. Jobs `journee`, `nuit`, `controles`, `sauvegarde`,
+the same steps as `orchestration/` (dbt is skipped when nothing is new).
+
+- Install (server): `python3.12 -m venv ~/data/dagster/.venv && ~/data/dagster/.venv/bin/pip install -r dagster_foot/requirements.txt`
+- Run (cron): `dagster_foot/dagster_run.sh journee` (lock of the base, `dbt parse`, `dagster job execute`, log in
+  `~/data/dagster/logs/`, e-mail on failure; run history in `~/data/dagster/home`).
+- UI on demand: `dagster_foot/dagster_ui.sh` on the server (stops after 2 h), then on the Mac
+  `ssh -N -L 3333:127.0.0.1:3333 mjzg4129@109.234.164.61` and http://localhost:3333 (lineage, runs, checks).
