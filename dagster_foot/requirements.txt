@@ -1,0 +1,12 @@
+# Environment of Dagster on the server (~/data/dagster/.venv), apart from the pipeline's (.venv): dbt and DuckDB pinned to
+# the versions of the production environment, pandas / numpy / pyarrow / scipy for foot_db's Python models.
+dagster==1.13.29
+dagster-dbt
+dagster-webserver==1.13.29
+dbt-core==1.12.6
+dbt-duckdb==1.11.1
+duckdb==1.5.6
+pandas==2.3.3
+numpy==2.5.4
+pyarrow==26.0.0
+scipy==1.18.1
