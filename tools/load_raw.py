@@ -7,6 +7,8 @@ values unchanged. The dbt project foot_db (github.com/krosamont/foot_db, clone ~
     python tools/load_raw.py --seasons 2026-2027
     python tools/load_raw.py --rewrite-csv  (write the CSV files again from the JSON first, e.g. after a change of
                                              pmd/brut_csv.py, then load every match again)
+    python tools/load_raw.py --legacy-fotmob   (the FotMob JSON of the old project's matches, data/legacy_fotmob/,
+                                             tools/oneoff/legacy_fotmob.py: their xG, line-ups, stats, score)
 
 A match folder has the JSON as downloaded (raw/whoscored.json, raw/fotmob.json) and the same data as flat CSV files
 (raw/csv/<table>.csv, pmd/brut_csv.py: one file per list of the JSON, no computation), written at download; a match
@@ -59,8 +61,13 @@ def tag_of(folder):
     return int(os.path.basename(os.path.normpath(folder)).split('_', 1)[0]), COMPETITION.get(slug, slug), season
 
 
+def raw_dir(folder):
+    """Where the JSON of a match are: <folder>/raw/ (data/matches/), or the folder itself (data/legacy_fotmob/)."""
+    return os.path.join(folder, 'raw') if os.path.isdir(os.path.join(folder, 'raw')) else folder
+
+
 def csv_dir(folder):
-    return os.path.join(folder, 'raw', 'csv')
+    return os.path.join(raw_dir(folder), 'csv')
 
 
 def stamp(folder):
@@ -126,6 +133,8 @@ def main(argv=None):
     ap.add_argument('--seasons', nargs='+', default=None, help=f'only these seasons (default: {FIRST_SEASON} and later)')
     ap.add_argument('--database', default=DATABASE, help='DuckDB file (default: $FOOT_DB or ~/data/foot.duckdb)')
     ap.add_argument('--rewrite-csv', action='store_true', help='write the CSV files again from the JSON first')
+    ap.add_argument('--legacy-fotmob', action='store_true',
+                    help="the old project's FotMob JSON (data/legacy_fotmob/<competition>_<season>/<WhoScored id>/)")
     a = ap.parse_args(argv)
 
     season_of = lambda d: os.path.basename(os.path.dirname(os.path.normpath(d))).rsplit('_', 1)[1]
@@ -134,11 +143,14 @@ def main(argv=None):
                      if os.path.exists(os.path.join(d, 'raw', 'fotmob.json'))
                      and (os.path.exists(os.path.join(d, 'raw', 'whoscored.json')) or tag_of(d)[0] in fotmob_only))
     folders = [d for d in folders if (season_of(d) in a.seasons if a.seasons else season_of(d) >= FIRST_SEASON)]
+    if a.legacy_fotmob:
+        folders = sorted(d for d in glob.glob(os.path.join(ROOT, 'data', 'legacy_fotmob', '*_*-*', '*', ''))
+                         if os.path.exists(os.path.join(d, 'fotmob.json')))
     written, failed = 0, []
     for d in folders:
         if a.rewrite_csv or not glob.glob(os.path.join(csv_dir(d), '*.csv')):
             try:
-                brut_csv.convert(os.path.join(d, 'raw'))
+                brut_csv.convert(raw_dir(d))
                 written += 1
             except Exception as e:   # noqa: BLE001  (one bad file must not stop the others; said in the log)
                 failed.append(d)
