@@ -9,7 +9,7 @@
 #   tools/sauvegarde_mac.sh                  install: tools/launchd/install.sh
 set -euo pipefail
 cd "$(dirname "$0")/.."
-SRV=${FOOT_SERVER:-mjzg4129@109.234.164.61}
+SRV=${FOOT_SERVER:-mjzg4129@${FOOT_SERVER_HOST:-data-workers.com}}
 DEST=${FOOT_BACKUP_DIR:-$HOME/Documents/dataScience/sport/football/sauvegardes_foot}
 PY=${FOOT_BACKUP_PY:-$HOME/Documents/dataScience/sport/football/transfermarkt/.venv/bin/python}
 mkdir -p "$DEST"

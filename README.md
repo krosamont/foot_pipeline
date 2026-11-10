@@ -249,4 +249,4 @@ the same steps as `orchestration/` (dbt is skipped when nothing is new).
 - Run (cron): `dagster_foot/dagster_run.sh journee` (lock of the base, `dbt parse`, `dagster job execute`, log in
   `~/data/dagster/logs/`, e-mail on failure; run history in `~/data/dagster/home`).
 - UI on demand: `dagster_foot/dagster_ui.sh` on the server (stops after 2 h), then on the Mac
-  `ssh -N -L 3333:127.0.0.1:3333 mjzg4129@109.234.164.61` and http://localhost:3333 (lineage, runs, checks).
+  `ssh -N -L 3333:127.0.0.1:3333 mjzg4129@data-workers.com` and http://localhost:3333 (lineage, runs, checks).
