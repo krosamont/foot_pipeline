@@ -26,8 +26,14 @@ le proposes ; tu ne le fais pas.
 ## Où regarder
 
 **Serveur**
-- Planning : `crontab -l`. Il fait foi : lis-le d'abord (en novembre 2026, `journee` toutes les 2 h de 9 h 45 à
-  21 h 45 via `dagster_foot/dagster_run.sh`, `nuit` à 23 h 30).
+- Planning : `crontab -l`. Il fait foi : lis-le d'abord. En novembre 2026, pour ce projet :
+  - `tools/run_missing.py` toutes les 15 min (le scraping des matchs WhoScored + FotMob) → `data/matches/run.log`,
+    échecs dans `data/matches/failed.csv` ;
+  - `python -m pmd.fixtures` à 9 h 05 (calendriers) → `data/matches/fixtures.log` ;
+  - `dagster_foot/dagster_run.sh journee` toutes les 2 h de 9 h 45 à 21 h 45 (chargement + dbt) ;
+  - `python -m orchestration run nuit` à 23 h 30 → `~/data/pipelines/cron.log` (ligne `[nuit] terminé : ok`).
+  Les autres lignes du crontab (ancien projet `~/data/foot/whoscored`, xGxA, productMove, podcast) ne sont pas de ton
+  ressort : cite-les seulement si elles échouent en bloquant les nôtres.
 - Dagster : logs `~/data/dagster/logs/`, historique `~/data/dagster/home`, scripts `~/data/foot_3d/dagster_foot/`
   (ce dépôt, foot_pipeline). Les échecs envoient aussi un e-mail.
 - Chargement : `~/data/foot_3d/tools/load_raw.py`, `run_missing.py`.
@@ -50,7 +56,9 @@ le proposes ; tu ne le fais pas.
 4. **Transfermarkt** : dernier passage (`run_id`, `_loaded_at` des tables `z_raw.transfermarkt_*`) ; pour une
    campagne en cours, avancement (`x/y players`) et arrêt (`stop: Transfermarkt refuses`, HTTP 202 = vérification
    anti-robot, souvent un VPN) ; un run avec `parts/` mais non chargé (`load failed`).
-5. **Sauvegarde** : dernier dossier de `~/Documents/dataScience/sport/football/sauvegardes_foot/` (moins de 2 jours) ;
+5. **Espace disque** : `df -h ~` et `du -sh ~/data/*` (le serveur est mutualisé ; ≈ 316 Go dans `~/data` le
+   2026-11-11) : signale ce qui grossit vite (copies de dev, anciennes sauvegardes, `data/matches`).
+6. **Sauvegarde** : dernier dossier de `~/Documents/dataScience/sport/football/sauvegardes_foot/` (moins de 2 jours) ;
    le test de restauration (`tools/test_restauration.py`) s'il a tourné récemment (ne le lance pas toi-même).
 
 ## Règles
