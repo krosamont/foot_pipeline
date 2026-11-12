@@ -50,10 +50,14 @@
   .team img { width: 28px; height: 28px; object-fit: contain; flex: none; }
   .score { font-family: var(--font-num); font-weight: 900; font-size: 20px; min-width: 64px; text-align: center; font-variant-numeric: tabular-nums; }
   .empty { color: var(--muted); padding: 24px 0; line-height: 1.6; }
-  .switchbar { display: flex; justify-content: flex-end; margin-bottom: 12px; }
+  .sitenav { display: flex; align-items: center; gap: 12px; margin-bottom: 22px; font-size: 14px; }
+  .sitenav img { width: 30px; height: 30px; }
+  .sitenav a { color: var(--muted); text-decoration: none; }
+  .sitenav a:hover { color: var(--text); }
+  .sitenav span { color: var(--faint); }
   .theme-switch { border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; font-size: 13px; color: var(--muted); text-decoration: none; white-space: nowrap; }
   .theme-switch:hover { border-color: var(--accent); color: var(--text); }
-  footer { margin-top: 40px; color: var(--faint); font-size: 12px; line-height: 1.6; }
+  footer { margin-top: 40px; padding-top: 18px; border-top: 1px solid var(--line); color: var(--faint); font-size: 12px; line-height: 1.6; }
   footer a { color: var(--muted); }
   @media (max-width: 520px) {
     .team img { width: 22px; height: 22px; }
@@ -82,7 +86,7 @@ a.lang-switch:hover { border-color: #2dc4c2; color: #fff; }
 <a class="lang-switch" href="/en/projet/foot_3d/" hreflang="en" lang="en" title="English version">EN</a>
 <script>document.querySelector("a.lang-switch").addEventListener("click", (e) => { e.currentTarget.href = e.currentTarget.getAttribute("href").split("?")[0] + location.search; });</script>
 <div class="wrap">
-  <nav class="switchbar"><a class="theme-switch" href="clair/">Version claire</a></nav>
+  <nav class="sitenav"><img src="/assets/images/logo.png" alt=""><a href="/">Data Workers</a><span>/</span><a href="/projet/">Projets</a><a class="switch theme-switch" href="clair/">Version claire</a></nav>
   <header>
     <h1>Matchs <span>en 3D</span></h1>
     <p>Chaque match devient un relief : les deux équipes se disputent le terrain action par action, les tirs font des collines,
@@ -99,8 +103,8 @@ a.lang-switch:hover { border-color: #2dc4c2; color: #fff; }
   </div>
   <div id="list"></div>
 
-  <footer>Données : WhoScored / Opta (événements), FotMob (xG, compositions, couleurs).
-    De nouveaux matchs s'ajoutent après chaque journée. · <a href="https://data-workers.com/">Data Workers</a></footer>
+  <footer class="sitefoot">Données : WhoScored / Opta (événements), FotMob (xG, compositions, couleurs).
+    De nouveaux matchs s'ajoutent après chaque journée. · <a href="/">data-workers.com</a> · Kevin Rosamont Prombo</footer>
 </div>
 
 <script>
