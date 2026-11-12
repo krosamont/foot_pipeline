@@ -50,7 +50,7 @@
   .team img { width: 28px; height: 28px; object-fit: contain; flex: none; }
   .score { font-family: var(--font-num); font-weight: 900; font-size: 20px; min-width: 64px; text-align: center; font-variant-numeric: tabular-nums; }
   .empty { color: var(--muted); padding: 24px 0; line-height: 1.6; }
-  footer { margin-top: 40px; color: var(--faint); font-size: 12px; line-height: 1.6; }
+  footer { margin-top: 40px; padding-top: 18px; border-top: 1px solid var(--line); color: var(--faint); font-size: 12px; line-height: 1.6; }
   footer a { color: var(--muted); }
   @media (max-width: 520px) {
     .team img { width: 22px; height: 22px; }
@@ -115,7 +115,7 @@ a.lang-switch:hover { background: #1d1b19; color: #ebe7de; }
 <a class="lang-switch" href="/projet/foot_3d/clair/" hreflang="fr" lang="fr" title="Version française">FR</a>
 <script>document.querySelector("a.lang-switch").addEventListener("click", (e) => { e.currentTarget.href = e.currentTarget.getAttribute("href").split("?")[0] + location.search; });</script>
 <div class="wrap">
-  <nav class="sitenav"><img src="/assets/images/logo.png" alt=""><a href="/en/clair/">Data Workers</a><span>/</span><a href="/en/projet/clair/">Projects</a><a class="theme-switch" href="../">Dark version</a></nav>
+  <nav class="sitenav"><img src="/assets/images/logo_orange.png" alt=""><a href="/en/clair/">Data Workers</a><span>/</span><a href="/en/projet/clair/">Projects</a><a class="switch theme-switch" href="../">Dark version</a></nav>
   <header>
     <h1>Matches <span>in 3D</span></h1>
     <p>Every match becomes a landscape: the two teams fight over the pitch action by action, shots make hills,
@@ -132,8 +132,8 @@ a.lang-switch:hover { background: #1d1b19; color: #ebe7de; }
   </div>
   <div id="list"></div>
 
-  <footer>Data: WhoScored / Opta (events), FotMob (xG, line-ups, colours).
-    New matches are added after every matchday. · <a href="/en/clair/">Data Workers</a></footer>
+  <footer class="sitefoot">Data: WhoScored / Opta (events), FotMob (xG, line-ups, colours).
+    New matches are added after every matchday. · <a href="/en/clair/">data-workers.com</a> · Kevin Rosamont Prombo</footer>
 </div>
 
 <script>
