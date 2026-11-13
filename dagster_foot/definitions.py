@@ -52,8 +52,10 @@ def sh(context, command, cwd, ok=(0,)):
 
 # ---------------------------------------------------------------- z_raw (the dbt sources)
 foot_db = DbtProject(project_dir=FOOT_DB_PROJECT, profiles_dir=FOOT_DB_PROJECT)
-RAW = sorted(n['name'] for n in json.loads(Path(foot_db.manifest_path).read_text())['sources'].values()
-             if n['schema'] == 'z_raw')
+SOURCES = [n for n in json.loads(Path(foot_db.manifest_path).read_text())['sources'].values() if n['schema'] == 'z_raw']
+RAW = sorted(n['name'] for n in SOURCES)
+# dbt names a source by its short prefix (ws_event, tm_player); identifier: its table in the database (whoscored_event)
+TABLE = {n['name']: n.get('identifier') or n['name'] for n in SOURCES}
 LEGACY = [t for t in RAW if t.endswith('_legacy')]
 TRANSFERMARKT = [t for t in RAW if t.startswith(('transfermarkt_', 'tm_')) and t not in LEGACY]
 MATCH_TABLES = [t for t in RAW if t not in LEGACY + TRANSFERMARKT]
@@ -76,7 +78,7 @@ def load_matches(context: AssetExecutionContext):
 def check_transfermarkt(context: AssetExecutionContext):
     since = int(LECTURE.stat().st_mtime) if LECTURE.exists() else 0
     out = subprocess.run([DUCKDB, '-readonly', '-noheader', '-list', str(BASE), '-c',
-                          f'select count(*) from z_raw.{TRANSFERMARKT_PLAYER} where epoch(_loaded_at) > {since}'],
+                          f'select count(*) from z_raw.{TABLE[TRANSFERMARKT_PLAYER]} where epoch(_loaded_at) > {since}'],
                          capture_output=True, text=True, check=True).stdout.strip()
     rows = int(out or 0)
     context.log.info(f'{rows} Transfermarkt profiles loaded since the last read copy')
@@ -94,7 +96,7 @@ legacy_tables = [AssetSpec(raw_key(t), group_name='z_raw',
 
 
 class FootTranslator(DagsterDbtTranslator):
-    """Every dbt node as <schema>/<name> (z_raw/whoscored_event, b_intermediate/int_match...), grouped by layer."""
+    """Every dbt node as <schema>/<name> (z_raw/ws_event, b_intermediate/int_match...), grouped by layer."""
 
     def get_asset_key(self, props):
         if props['resource_type'] == 'source':
