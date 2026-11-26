@@ -115,8 +115,8 @@ if (!RENDER_MODE) {
 }
 // ------------------------------------------------------------------ playback speed
 // The timeline (timeline.js) is the one of the videos (about 4 min); the page plays it at BASE, the speed that makes the
-// whole match last about 2 min 30 (x1). x2, x4 and x8 play faster, except around the key moments, which always run at x1 so
-// they can be seen: shots on target (saved, post) and goals, goal and penalty pauses, cards, and each break (the line
+// whole match last about 2 min 30 (x1). x2, x4, x8 and x16 play faster, except around the key moments, which run at x1 (x2 at x16)
+// so they can be seen: shots on target (saved, post) and goals, goal and penalty pauses, cards, and each break (the line
 // back on the centre line, the map turning round, the kick-off). Each moment is anticipated (the speed eases down
 // just before it). A frame runs the cheap scalar steps every 1/60 video s and the expensive cloth relief once, relaxed over
 // the whole frame (as a seek does).
@@ -130,12 +130,14 @@ const KEY = [
 const keyAhead = (t, ahead) => KEY.some(([a, b]) => b > t && a < t + ahead);
 let speed = 1, rate = BASE;   // rate: video s per real s, eased toward its target
 // looks ahead by about the distance the easing (0.12 s) needs to come back down to x1
-const target = (t, k) => BASE * (k > 1 && keyAhead(t, BASE * (k - 1) * 0.15) ? 1 : k);
+// (at x16 the key moments play at x2: at x1 they alone would last about as long as the whole match at x8)
+const keySpeed = (k) => (k >= 16 ? 2 : 1);
+const target = (t, k) => BASE * (k > keySpeed(k) && keyAhead(t, BASE * (k - keySpeed(k)) * 0.15) ? keySpeed(k) : k);
 function advance(dt) {
   if (!(dt > 0)) return;
   const ds = []; let t = state.t, real = dt;
   rate = lp(rate, target(t, speed), 0.12, dt);
-  while (real > 1e-6 && ds.length < 96) { const d = Math.min(1 / 60, real * rate); ds.push(d); t += d; real -= d / rate; }
+  while (real > 1e-6 && ds.length < 200) { const d = Math.min(1 / 60, real * rate); ds.push(d); t += d; real -= d / rate; }
   const last = ds.pop(), all = t - state.t;
   for (const d of ds) { step(d, true); drawSky(d, false); }
   step(last, false, all); updateGeometry(); drawSky(last); drawPulse(state.T, state.t); updateUI(state.T, state.t); renderer.render(scene, camera);
