@@ -7,7 +7,8 @@ import { seam, seamVel, laneAt, FOULS, state, integrateSeam } from './engine.js'
 import { territory, worldX, heightAtCloth, computeTargets } from './relief.js';
 
 
-function integrate(dt, light = false) {
+// relax: video seconds the cloth relief catches up over (the whole frame when the page plays faster, js/main.js)
+function integrate(dt, light = false, relax = dt) {
   // the front is a damped force balance: each lane accelerates toward the data target, with inertia
   integrateSeam(dt);
   // progression waves: metres each lane has gained lately, per side (forward moves in normal play only; resets to a foul
@@ -17,13 +18,13 @@ function integrate(dt, light = false) {
     for (let l = 0; l < NL; l++) { const v = play ? seamVel[l] * dt : 0;
       state.gainHome[l] = state.gainHome[l] * f + Math.max(0, v); state.gainAway[l] = state.gainAway[l] * f + Math.max(0, -v); } }
   if (light) return;
-  const b = 1 - Math.exp(-dt / P.H_TAU); for (const c of cloths) for (let k = 0; k < c.h.length; k++) c.h[k] += (c.hT[k] - c.h[k]) * b;
+  const b = 1 - Math.exp(-relax / P.H_TAU); for (const c of cloths) for (let k = 0; k < c.h.length; k++) c.h[k] += (c.hT[k] - c.h[k]) * b;
 }
-function step(dt, light = false) { state.dt = dt; const t = state.t + dt; const T = matchTime(t); const T0 = state.T; state.t = t; state.T = T;
+function step(dt, light = false, relax = dt) { state.dt = dt; const t = state.t + dt; const T = matchTime(t); const T0 = state.T; state.t = t; state.T = T;
   for (const f of FOULS) if (f.T > T0 && f.T <= T) state.flash = { ...f, t0: t };
   // kick-off after a goal: the centre spot flashes and the halfway line lights up when play restarts
   for (const st of stops) { const e = st.t0 + st.dur; if (e > t - dt && e <= t) state.flash = { T: st.goal.T + 0.01, X: 52.5, Y: 34, kickoff: true, t0: t }; }
-  computeTargets(T, t, light); integrate(dt, light); }
+  computeTargets(T, t, light); integrate(dt, light, relax); }
 
 // ------------------------------------------------------------------ geometry update
 // half-time: during the break the whole pitch swings round (eased), the second half is seen from the other side

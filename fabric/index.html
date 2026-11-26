@@ -62,6 +62,12 @@
   #play:before { content:''; width:4px; height:14px; border-left:4px solid #111; border-right:4px solid #111; box-sizing:content-box; width:4px; }
   #play { pointer-events:auto; cursor:pointer; }
   #play.paused:before { width:0; height:0; border-top:9px solid transparent; border-bottom:9px solid transparent; border-left:15px solid #111; border-right:0; margin-left:4px; }
+  /* playback speed (js/main.js): x2 is the normal speed of the site, "1 min" plays the whole match in at most a minute */
+  #speed { position:absolute; left:20px; top:698px; display:flex; gap:5px; pointer-events:auto; z-index:7; }
+  #speed button { font:600 11px/1 var(--font-text); letter-spacing:0.02em; color:#9ca1b4; background:rgba(14,16,24,0.55); border:1px solid rgba(255,255,255,0.18); border-radius:999px; height:24px; min-width:32px; padding:0 7px; cursor:pointer; }
+  #speed button:hover { color:#fff; border-color:rgba(255,255,255,0.45); }
+  #speed button:focus-visible { outline:2px solid #2dc4c2; outline-offset:2px; }
+  #speed button.on { background:#fff; border-color:#fff; color:#111; }
   .card { position:absolute; width:186px; min-height:150px; border-radius:14px; background:linear-gradient(160deg, rgba(40,42,54,0.78), rgba(14,15,21,0.86)); border:1px solid rgba(255,255,255,0.10); backdrop-filter:blur(14px) saturate(140%); -webkit-backdrop-filter:blur(14px) saturate(140%); box-shadow:0 10px 30px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.08); opacity:0; transform:translate(-50%,-50%); padding:9px; box-sizing:border-box; }
   .card .photo { width:168px; height:100px; border-radius:9px; background:#2a2d3a center/cover no-repeat; }
   .card .row { display:flex; align-items:center; gap:7px; margin-top:9px; }
@@ -105,6 +111,7 @@
   .portrait #clock { right:36px; top:96px; }
   .portrait #clock .min { font-size:54px; }
   .portrait #play { left:22px; top:1112px; }
+  .portrait #speed { left:22px; top:1214px; }
   .portrait #stats { left:170px; top:560px; }
   .portrait #howtoLayer .hw-img { object-fit:contain; }
 
@@ -114,6 +121,7 @@
   .light #howto, .light #viewbtn.on { color:#3b3833; } .light #howto:hover, .light #viewbtn.on:hover { color:#1d1b19; } .light #viewbtn { color:#9a948a; }
   .light .team .name, .light #clock .min, .light #stats .v { color:#1d1b19; }
   .light .team .goals div { color:#3b3833; } .light .team .goals .sc { color:#6f6a62; }
+  .light #speed button { color:#6f6a62; background:rgba(246,243,236,0.7); border-color:rgba(29,27,25,0.25); } .light #speed button:hover { color:#1d1b19; border-color:rgba(29,27,25,0.55); } .light #speed button.on { background:#1d1b19; border-color:#1d1b19; color:#ebe7de; }
   .light #play { background:#1d1b19; } .light #play:before { border-left-color:#ebe7de; border-right-color:#ebe7de; } .light #play.paused:before { border-left-color:#ebe7de; }
   .light .card { background:rgba(246,243,236,0.92); border:1.5px solid #1d1b19; border-radius:2px; box-shadow:4px 4px 0 rgba(0,0,0,0.12); backdrop-filter:none; -webkit-backdrop-filter:none; }
   .light .card .photo { border-radius:1px; background-color:#d8d3c8; }
@@ -136,6 +144,7 @@
     <div class="team" id="away"><div class="name"><span class="flag"></span></div><div class="bar"></div><div class="score">0</div><div class="goals"></div></div>
     <div id="clock"><div class="min">1<sup>'</sup></div><div class="half">1ST HALF</div></div>
     <div id="play"></div>
+    <div id="speed" role="group" aria-label="Vitesse de lecture"><button type="button" data-speed="2">×2</button><button type="button" data-speed="4">×4</button><button type="button" data-speed="8">×8</button><button type="button" data-speed="min">1 min</button></div>
     <div id="cards"></div>
     <div id="tips"></div>
     <div id="stats"></div>
@@ -148,6 +157,6 @@
     document.write('<script src="' + src + '?v=' + Date.now() + '"><\/script>'); })();
 </script>
 <script src="camera.js?v=20261017c"></script>
-<script type="module" src="js/main.js?v=20261019r"></script>
+<script type="module" src="js/main.js?v=20261126a"></script>
 </body>
 </html>

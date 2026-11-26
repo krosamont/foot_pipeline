@@ -215,21 +215,26 @@ for _, r in df[(df['type'] == 'Tackle') & (df['outcomeType'] == 'Successful') & 
 
 # ---------------------------------------------------------------- momentum
 # preferred: the xT momentum recomputed from the events by the export script (<match>_momentum.csv, per expandedMinute),
-# put on the chart's minute axis (first half capped at 45, second half 45 -> 90) and scaled so the peak is +-100
-mom_csv = None
+# put on the chart's minute axis (first half capped at 45, second half 45 -> 90) and scaled so the peak is +-100.
+# csv: the smoothed momentum (drives the 3D map, engine.js); raw: the same minutes without the gaussian smoothing (drawn
+# on the momentum bar, pulse.js)
+mom_csv = mom_raw = None
 mcsv = CSV.replace('_qualifiers_expanded.csv', '_momentum.csv')
 if os.path.exists(mcsv):
     mdf = pd.read_csv(mcsv)
     peak = float(mdf['smoothed_momentum'].abs().max()) or 1.0
-    mom_csv = []
+    peak_raw = float(mdf['momentum'].abs().max()) or 1.0
+    rows = []
     for _, r in mdf.iterrows():
         if r['period'] not in SHIFT:
             continue
         T = (r['expandedMinute'] + 0.5) * 60 + SHIFT[r['period']]
         p = next(q for q in PERIODS if q['name'] == r['period'])
         cm = min(p['nom0'] + max(0.0, T - p['start']) / 60, p['nom1'])
-        mom_csv.append([round(cm, 2), round(100 * float(r['smoothed_momentum']) / peak, 1)])
-    mom_csv = [p for i, p in enumerate(mom_csv) if i == len(mom_csv) - 1 or mom_csv[i + 1][0] > p[0]]   # one value per chart minute
+        rows.append((round(cm, 2), round(100 * float(r['smoothed_momentum']) / peak, 1), round(100 * float(r['momentum']) / peak_raw, 1)))
+    rows = [p for i, p in enumerate(rows) if i == len(rows) - 1 or rows[i + 1][0] > p[0]]   # one value per chart minute
+    mom_csv = [[cm, s] for cm, s, _ in rows]
+    mom_raw = [[cm, v] for cm, _, v in rows]
 
 mom_fotmob = None   # (the old France-England FotMob momentum file is no longer used: the momentum comes from the CSV)
 
@@ -412,7 +417,7 @@ data = dict(
     home=HOME_ID, away=AWAY_ID,
     periods=dict(firstHalfEnd=FIRST_HALF_END, secondHalfStart=SECOND_HALF_START, matchEnd=MATCH_END, list=PERIODS),
     shots=shots, subs=subs, cards=cards, fouls=fouls, setpieces=setpieces, prog=prog, tackles=tackles,
-    momentum=dict(csv=mom_csv, fotmob=mom_fotmob), stats=stats)
+    momentum=dict(csv=mom_csv, raw=mom_raw, fotmob=mom_fotmob), stats=stats)
 # ---------------------------------------------------------------- images kept in the project
 # Player photos and team logos are downloaded once into assets/media/ (3 tries each) and the 3D page uses the local
 # copies: no network needed while rendering, and a short network failure can no longer leave a card without its photo.
