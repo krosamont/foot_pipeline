@@ -2,7 +2,7 @@
 import { M, W, H, PORTRAIT, LIGHT_THEME, clamp, P } from './config.js';
 import { BREAKS, MAX_MIN, dispMinute, chartMinute, stops, CARDS } from './timeline.js';
 import { TC, rgbaT, inkOn } from './scene.js';
-import { state, momSeries, momentumAt } from './engine.js';
+import { state, momSeries } from './engine.js';
 import { rgb } from './sky.js';
 import { FONT_TEXT } from './fonts.js';
 
@@ -12,19 +12,27 @@ const pulseCtx = document.getElementById('pulse').getContext('2d');
 const CH = PORTRAIT ? { x0: 96, pxm: (W - 96 - 40) / MAX_MIN, y: P.PULSE_Y, amp: 0.5 } : { x0: 251, pxm: 9.08 * 90 / MAX_MIN, y: P.PULSE_Y, amp: 0.5 };
 const cx = (m) => CH.x0 + CH.pxm * Math.min(m, MAX_MIN);
 // lines, names and their backing: white on the night sky, ink on the beige paper (?theme=light)
+// the bar draws the per-minute xT momentum without the gaussian smoothing (build_data.py `raw`; older files: the smoothed
+// series) on a tighter scale: the 75th percentile of |momentum| reaches 3/4 of the height and the peaks saturate (tanh)
+// at +-110, so the swings and the extremes stand out. The 3D map keeps the smoothed series (engine.js).
+const MOM_SRC = M.momentum.raw || momSeries;
+const MOM_REF = (() => { const a = MOM_SRC.map(p => Math.abs(p[1])).filter(v => v > 0).sort((x, y) => x - y); return a.length ? a[Math.floor(a.length * 0.75)] : 100; })();
+const MOM = MOM_SRC.map(([m, v]) => [m, 110 * Math.tanh(v / MOM_REF)]);
+function momDisplayAt(cm) { if (cm <= MOM[0][0]) return MOM[0][1];
+  for (let i = 1; i < MOM.length; i++) if (MOM[i][0] >= cm) { const [m0, v0] = MOM[i - 1], [m1, v1] = MOM[i]; return m1 > m0 ? v0 + (v1 - v0) * (cm - m0) / (m1 - m0) : v1; } return MOM[MOM.length - 1][1]; }
 const LN = LIGHT_THEME ? '29,27,25' : '255,255,255';
 const INK = LIGHT_THEME ? { name: '#1d1b19', off: '#6f6a62', on: '#2f8f4e', out: '#c2393f', back: 'rgba(246,243,236,0.88)', dot: '#1d1b19' }
   : { name: '#e4e6ee', off: '#9ea3b5', on: '#5fd68a', out: '#ff6b6b', back: 'rgba(14,16,24,0.72)', dot: '#fff' };
 function drawPulse(T, t) {
   const ctx = pulseCtx; ctx.clearRect(0, 0, W, H); const cm = chartMinute(T);
   for (const br of BREAKS) if (cm >= br.nom) { ctx.strokeStyle = `rgba(${LN},0.35)`; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(cx(br.nom) + 0.5, CH.y - 52); ctx.lineTo(cx(br.nom) + 0.5, CH.y + 56); ctx.stroke(); }   // a line at each period start
-  const pts = []; for (const [m, v] of momSeries) { if (m > cm) break; pts.push([cx(m), CH.y - v * CH.amp]); }
-  pts.push([cx(cm), CH.y - momentumAt(cm) * CH.amp]);
+  const pts = []; for (const [m, v] of MOM) { if (m > cm) break; pts.push([cx(m), CH.y - v * CH.amp]); }
+  pts.push([cx(cm), CH.y - momDisplayAt(cm) * CH.amp]);
   if (pts.length > 1) {
     const fill = (sign, color) => { ctx.save(); ctx.beginPath(); ctx.rect(0, sign > 0 ? 0 : CH.y, W, sign > 0 ? CH.y : H - CH.y); ctx.clip();
       ctx.beginPath(); ctx.moveTo(pts[0][0], CH.y); for (const p of pts) ctx.lineTo(p[0], p[1]); ctx.lineTo(pts[pts.length - 1][0], CH.y); ctx.closePath(); ctx.fillStyle = color; ctx.fill(); ctx.restore(); };
     fill(1, rgbaT('home', 0.9)); fill(-1, rgbaT('away', 0.62));
-    ctx.beginPath(); for (const p of pts) ctx.lineTo(p[0], p[1]); ctx.strokeStyle = `rgba(${LN},0.95)`; ctx.lineWidth = 1.6; ctx.lineJoin = 'round'; ctx.stroke();
+    ctx.beginPath(); for (const p of pts) ctx.lineTo(p[0], p[1]); ctx.strokeStyle = `rgba(${LN},0.95)`; ctx.lineWidth = 1.6; ctx.lineJoin = 'miter'; ctx.stroke();
   }
   ctx.beginPath(); ctx.moveTo(CH.x0, CH.y + 0.5); ctx.lineTo(cx(cm), CH.y + 0.5); ctx.strokeStyle = `rgba(${LN},0.5)`; ctx.lineWidth = 1; ctx.stroke();
   // cursor line first, so markers and names are drawn over it
