@@ -62,8 +62,8 @@
   #play:before { content:''; width:4px; height:14px; border-left:4px solid #111; border-right:4px solid #111; box-sizing:content-box; width:4px; }
   #play { pointer-events:auto; cursor:pointer; }
   #play.paused:before { width:0; height:0; border-top:9px solid transparent; border-bottom:9px solid transparent; border-left:15px solid #111; border-right:0; margin-left:4px; }
-  /* playback speed (js/main.js): x2 is the normal speed of the site, "1 min" plays the whole match in at most a minute */
-  #speed { position:absolute; left:20px; top:698px; display:flex; gap:5px; pointer-events:auto; z-index:7; }
+  /* playback speed (js/main.js): x1 = about 2 min 30 per match, x2 / x4 faster but the key moments stay at x1 */
+  #speed { position:absolute; left:38px; top:698px; display:flex; gap:5px; pointer-events:auto; z-index:7; }
   #speed button { font:600 11px/1 var(--font-text); letter-spacing:0.02em; color:#9ca1b4; background:rgba(14,16,24,0.55); border:1px solid rgba(255,255,255,0.18); border-radius:999px; height:24px; min-width:32px; padding:0 7px; cursor:pointer; }
   #speed button:hover { color:#fff; border-color:rgba(255,255,255,0.45); }
   #speed button:focus-visible { outline:2px solid #2dc4c2; outline-offset:2px; }
@@ -144,7 +144,7 @@
     <div class="team" id="away"><div class="name"><span class="flag"></span></div><div class="bar"></div><div class="score">0</div><div class="goals"></div></div>
     <div id="clock"><div class="min">1<sup>'</sup></div><div class="half">1ST HALF</div></div>
     <div id="play"></div>
-    <div id="speed" role="group" aria-label="Vitesse de lecture"><button type="button" data-speed="2">×2</button><button type="button" data-speed="4">×4</button><button type="button" data-speed="8">×8</button><button type="button" data-speed="min">1 min</button></div>
+    <div id="speed" role="group" aria-label="Vitesse de lecture"><button type="button" data-speed="1">×1</button><button type="button" data-speed="2">×2</button><button type="button" data-speed="4">×4</button></div>
     <div id="cards"></div>
     <div id="tips"></div>
     <div id="stats"></div>

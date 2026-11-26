@@ -1,6 +1,6 @@
 // Entry point: frame loop, seeking (scrub), play / pause, test hooks used by tools/*.js, ready signal.
-import { M, W, RENDER_MODE, P, clamp } from './config.js';
-import { PERIODS, MAX_MIN, clockText, chartMinute, stops, penMisses, knots, T_FULLTIME, T_VIDEO_END, matchTime, videoTimeAt } from './timeline.js';
+import { M, W, RENDER_MODE, P, clamp, lp } from './config.js';
+import { PERIODS, MAX_MIN, clockText, chartMinute, stops, penMisses, CARDS, BREAKS, knots, T_FULLTIME, T_VIDEO_END, matchTime, videoTimeAt } from './timeline.js';
 import { renderer, scene, camera, cloths, BLUE, WHITE, setUserView } from './scene.js';
 import { seam, seamVel, state, PERCEES, buildStart } from './engine.js';
 import { hills, computeTargets } from './relief.js';
@@ -114,37 +114,45 @@ if (!RENDER_MODE) {
   btn.addEventListener('click', () => { if (moved()) reset(); });
 }
 // ------------------------------------------------------------------ playback speed
-// The timeline (timeline.js) is the one of the videos; the page plays it faster: x2 by default, x4, x8, or "1 min" (the
-// speed that fits the whole match in 60 s). Goal and missed-penalty pauses never run faster than x2, so the flood, the
-// score and the scorer's card stay readable. A frame runs the cheap scalar steps every 1/60 video s and the expensive
-// cloth relief once, relaxed over the whole frame (as a seek does).
-const PAUSE_SPEED = 2;
-const PAUSES = [...stops.map(s => [s.t0, s.t0 + s.dur + 2.5]), ...penMisses.map(s => [s.t0, s.t0 + s.dur + 1])];
-const inPause = (t) => PAUSES.some(([a, b]) => t >= a && t < b);
-const pauseLen = PAUSES.reduce((a, [x, y]) => a + Math.min(y, T_VIDEO_END) - x, 0);
-const ONE_MIN = Math.max(PAUSE_SPEED, (T_VIDEO_END - pauseLen) / Math.max(10, 60 - pauseLen / PAUSE_SPEED));   // rest / v + pauses / 2 = 60 s
-let speed = 2;
+// The timeline (timeline.js) is the one of the videos (about 4 min); the page plays it at BASE, the speed that makes the
+// whole match last about 2 min 30 (x1). x2 and x4 play faster, except around the key moments, which always run at x1 so
+// they can be seen: shots on target (saved, post) and goals, goal and penalty pauses, cards, and each break (the line
+// back on the centre line, the map turning round, the kick-off). Each moment is anticipated (the speed eases down
+// before it). A frame runs the cheap scalar steps every 1/60 video s and the expensive cloth relief once, relaxed over
+// the whole frame (as a seek does).
+const TARGET_S = 150;
+const BASE = Math.max(1, T_VIDEO_END / TARGET_S);
+const KEY = [
+  ...M.shots.filter(s => s.goal || s.type === 'SavedShot' || s.type === 'ShotOnPost').map(s => { const v = videoTimeAt(s.T); return [v - 0.6, v + 2.5]; }),
+  ...stops.map(s => [s.t0, s.t0 + s.dur + 2.5]), ...penMisses.map(s => [s.t0, s.t0 + s.dur + 1]),
+  ...CARDS.map(c => { const v = videoTimeAt(c.T); return [v - 0.3, v + P.CARD_FX + 0.5]; }),
+  ...BREAKS.map(br => [videoTimeAt(br.end) - 0.3, videoTimeAt(br.start) + P.KICK_PAUSE + 1])];
+const keyAhead = (t, ahead) => KEY.some(([a, b]) => b > t && a < t + ahead);
+let speed = 1, rate = BASE;   // rate: video s per real s, eased toward its target
+const target = (t, k) => BASE * (k > 1 && keyAhead(t, BASE * k * 0.35) ? 1 : k);   // looks 0.35 real s ahead
 function advance(dt) {
   if (!(dt > 0)) return;
   const ds = []; let t = state.t, real = dt;
-  while (real > 1e-6 && ds.length < 96) { const v = inPause(t) ? Math.min(speed, PAUSE_SPEED) : speed; const d = Math.min(1 / 60, real * v); ds.push(d); t += d; real -= d / v; }
+  rate = lp(rate, target(t, speed), 0.12, dt);
+  while (real > 1e-6 && ds.length < 96) { const d = Math.min(1 / 60, real * rate); ds.push(d); t += d; real -= d / rate; }
   const last = ds.pop(), all = t - state.t;
   for (const d of ds) { step(d, true); drawSky(d, false); }
   step(last, false, all); updateGeometry(); drawSky(last); drawPulse(state.T, state.t); updateUI(state.T, state.t); renderer.render(scene, camera);
 }
-window.__playSeconds = (v) => { let r = 0; for (let t = 0; t < T_VIDEO_END; t += 0.01) r += 0.01 / (inPause(t) ? Math.min(v, PAUSE_SPEED) : v); return r; };   // test hook: seconds to watch at speed v
-window.__oneMin = ONE_MIN;
+// test hook: seconds to watch the whole match at speed k (same easing as advance, 60 frames per s)
+window.__playSeconds = (k) => { let t = 0, r = 0, v = BASE; while (t < T_VIDEO_END) { v = lp(v, target(t, k), 0.12, 1 / 60); t += v / 60; r += 1 / 60; } return r; };
+window.__keyShare = () => KEY.reduce((a, [x, y]) => a + (y - x), 0) / T_VIDEO_END;
 { const box = document.getElementById('speed');
   if (box && RENDER_MODE) box.remove();
   else if (box) {
     if (EN) box.setAttribute('aria-label', 'Playback speed');
-    const pick = (key) => { const b = box.querySelector(`[data-speed="${key}"]`) || box.querySelector('[data-speed="2"]'); speed = b.dataset.speed === 'min' ? ONE_MIN : +b.dataset.speed;
+    box.title = EN ? 'Shots on target, goals, penalties, cards and half-time always play at x1' : 'Tirs cadrés, buts, penaltys, cartons et mi-temps passent toujours en x1';
+    const pick = (key) => { const b = box.querySelector(`[data-speed="${key}"]`) || box.querySelector('[data-speed="1"]'); speed = +b.dataset.speed;
       for (const x of box.querySelectorAll('button')) { x.classList.toggle('on', x === b); x.setAttribute('aria-pressed', x === b); }
       try { localStorage.setItem('foot3d_speed', b.dataset.speed); } catch (e) {} };
-    box.querySelector('[data-speed="min"]').title = EN ? 'The whole match in at most a minute' : 'Tout le match en une minute au plus';
     box.addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) pick(b.dataset.speed); });
     let saved = null; try { saved = localStorage.getItem('foot3d_speed'); } catch (e) {}
-    pick(saved || '2');
+    pick(saved || '1');
   } }
 if (!RENDER_MODE) { let last = performance.now(); const loop = (now) => { const dt = Math.min(0.05, (now - last) / 1000); last = now;
     if (scrubX !== null) { seekTo(videoTimeAt(matchTimeAtX(scrubX))); scrubX = null; } else if (!paused && !scrubbing) advance(dt);
